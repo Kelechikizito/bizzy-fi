@@ -18,7 +18,7 @@ bizzy-fi is a NEAR HACKATHON entry: agentic B2B commerce, where AI agents negoti
 ## Layout
 
 - `frontend/` — Next.js 16 + React 19 + Tailwind v4 (via `@tailwindcss/turbopack`, no PostCSS config), npm. Commands run from `frontend/`: `npm run dev`, `npm run build`, `npm run lint`. No test framework yet.
-- `contract/` (planned) — Rust NEAR contract built with `cargo near build`. Use the `near-smart-contracts` skill when writing it and `near-contract-audit` before deploying.
+- `contract/` (planned) — Rust NEAR contract built with `cargo near build`. All on-chain logic is native Rust on NEAR: no Solidity or Aurora. Use the `near-smart-contracts` skill when writing it and `near-contract-audit` before deploying.
 - Next 16 has breaking changes versus training data: read the relevant guide in `frontend/node_modules/next/dist/docs/` before writing Next code (see `frontend/AGENTS.md`).
 
 ## NEAR
