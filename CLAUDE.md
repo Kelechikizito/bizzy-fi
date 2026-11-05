@@ -25,6 +25,7 @@ bizzy-fi is a NEAR HACKATHON entry: agentic B2B commerce, where AI agents negoti
 
 - Develop on **testnet** only. Never deploy to mainnet, sign mainnet transactions, or spend tokens without the human's explicit confirmation.
 - Never create or invent the mainnet payout account; the team creates it.
+- **Use partner tools instead of building from scratch.** Before building a feature (escrow, swaps, payments, treasury/multisig, private AI, agent hiring, login, etc.), check whether a partner in `HACKATHON.md`'s Ecosystem table already provides it, and integrate that instead. Build custom only when no partner fits, and say so.
 - Verify partner endpoints, contract addresses and SDK versions in the partner docs listed in `HACKATHON.md` instead of assuming them.
 
 ## Repo
