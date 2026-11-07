@@ -177,7 +177,6 @@ async fn create_subaccount(
     Ok(near_api::Account(account_id))
 }
 
-
 #[tokio::test]
 async fn test_contract_is_operational() -> testresult::TestResult<()> {
     let contract_wasm_path = cargo_near_build::build_with_cli(Default::default())?;
@@ -185,4 +184,3 @@ async fn test_contract_is_operational() -> testresult::TestResult<()> {
 
     test_basics_on(contract_wasm).await
 }
-
