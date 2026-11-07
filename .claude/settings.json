@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; case \"$f\" in */node_modules/*) ;; */frontend/*.ts|*/frontend/*.tsx) cd \"${f%%/frontend/*}/frontend\" && npx --no-install eslint --fix \"$f\";; *.rs) rustfmt --edition 2021 \"$f\";; esac; } >/dev/null 2>&1 || true",
+            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; case \"$f\" in */node_modules/*) ;; */frontend/*.ts|*/frontend/*.tsx) cd \"${f%%/frontend/*}/frontend\" && npx --no-install eslint --fix \"$f\";; *.rs) rustfmt --edition 2024 \"$f\";; esac; } >/dev/null 2>&1 || true",
             "timeout": 60,
             "statusMessage": "Formatting edited file..."
           }
