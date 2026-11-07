@@ -33,6 +33,22 @@ We borrow only what makes these features work in practice, not for show, and reb
 4. **Cross-chain payment.** If the buyer pays in another token or chain, **NEAR Intents** settles it. Intents has no testnet, so use tiny mainnet amounts or mocked quotes.
 5. **Optional extra security.** **OutLayer** can keep the agent's key inside a TEE so it can't leak, and produces verifiable receipts of agent actions.
 
+## 2b. Two ways to find a partner
+
+Deals can start either way, and both use the same signing, policy, escrow and reputation steps:
+
+1. **AI discovery:** a company's agent searches the Bizzy-Fy directory and finds a partner it has never met.
+2. **Direct connection (met in real life):** two companies meet at a conference, a meeting or through a referral, and decide to work together. **Either side can start it**, buyer or seller:
+   - One company sends a **connect invite**: a link or QR code, or a search for the other's name (`acme.bizzyfy.testnet`).
+   - The other company's guardian accepts. If that company isn't on Bizzy-Fy yet, the invite onboards it, and the sender gets referral credit.
+   - Once both accept, each company is added to the other's allowlist as a **trusted connection**.
+   - The guardians then choose how much to hand to the agents:
+     - **Agent-negotiated:** the guardians give their agents a brief based on what was agreed in person (e.g. "50 seats, budget $5–7k, March"), and the agents negotiate the details.
+     - **Human-agreed terms:** the guardians enter the terms they already agreed, and the agents only execute: signing, escrow, milestones, payout.
+   - Either side can send the next proposal (a quote, an order, a change), so the relationship works in both directions.
+
+Connections are **private by default**: who works with whom isn't shown publicly unless both companies choose to display it. Deals between connections count toward reputation, but deals with the same counterparty count less than deals with new ones, which limits two friendly companies inflating each other's scores.
+
 ## 3. Rogue agent: freeze, recover, consequences
 
 **Freeze:** the guardian makes one call that:
@@ -82,6 +98,34 @@ Reference: Meta Pool's quests used NEAR's "I-Am-Human" credential. Check that it
 
 ---
 
+## Settlement methods
+
+Escrow is the safe default, but it ties up the buyer's money. Bizzy-Fy offers settlement methods matched to how much two companies trust each other. All of them use the same signed terms, policy caps and reputation; only the way money moves changes.
+
+**Hackathon:**
+1. **Full escrow:** the buyer's funds lock and release on delivery. Default for new partners and one-off deals.
+2. **Milestone escrow:** escrow released in stages (e.g. 30% / 40% / 30%), each on a confirmed milestone. For projects such as events, software and audits.
+3. **Netting (standout feature):** for **trusted connections** that buy from each other. Instead of paying for every deal:
+   - each completed deal is recorded as an amount owed, in a running balance between the two companies;
+   - at the end of each settlement period (e.g. weekly), or whenever either side asks, only the **difference** is paid by whichever company owes it;
+   - each side sets a **net exposure limit**, the most it will let the other owe it. Each company also locks a **netting deposit** to back that limit. A deal that would push the balance past the limit falls back to escrow;
+   - if the company that owes doesn't pay by the deadline, its deposit covers the debt, and its reputation drops.
+
+   **Why it matters:**
+   - less cash tied up, and fewer transactions;
+   - **more privacy**, since individual deals never move money on-chain, only the periodic net payment does;
+   - it rewards companies for building ongoing two-way relationships on Bizzy-Fy.
+
+**Roadmap:**
+- streaming payments (money flows while a service runs);
+- performance bonds (the seller locks a bond instead of the buyer locking funds);
+- credit based on reputation (pay on 30-day terms, with no lock);
+- invoice financing (sellers get paid early by a lender, e.g. a Rhea lending vault).
+
+The agent suggests a method based on the relationship: escrow for strangers, then netting as trust builds.
+
+---
+
 ## Contracts to build
 
 Three Rust contracts:
@@ -95,10 +139,11 @@ Three Rust contracts:
    - Enforces per-deal and per-period caps, the counterparty allowlist, and time-locked policy changes.
    - Sends anything over the cap to the guardian for approval.
    - Handles **freeze** (Suspended status, cancelling the agent's open escrows) and the agent's bond and slashing.
-3. **Escrow**:
+3. **Escrow & settlement**:
    - Records each deal as a terms hash plus both agents' signatures.
    - Locks funds and releases them on delivery or after the deadline.
    - Handles milestones, holdbacks, refunds and disputes.
+   - **Netting** between trusted connections: running balance per pair, net exposure limits, netting deposits, periodic net settlement, default handling.
    - Reports each outcome to the registry for reputation.
 
 **Not built by us (partners):** multisig treasury (Trezu/SputnikDAO), cross-chain payments (NEAR Intents), private AI (NEAR AI Cloud), agent key custody (OutLayer), proof of personhood (World ID, verified off-chain).
@@ -107,6 +152,7 @@ Three Rust contracts:
 
 ## Scope (deadline 2026-11-14T23:59:00Z)
 
-1. **Core loop (must-have):** company onboarding (social login, guardian, named account) → agent with function-call key and caps → private negotiation (NEAR AI) → escrow deal → freeze button.
-2. **Next:** reputation computed from escrow outcomes, plus a profile with public and private sections.
+1. **Core loop (must-have):** company onboarding (social login, guardian, named account) → agent with function-call key and caps → private negotiation (NEAR AI) → escrow deal (full and milestone) → freeze button.
+2. **Next:** direct connections + **netting** (the standout feature), reputation computed from deal outcomes, and a profile with public and private sections.
 3. **Stretch:** quests and trust tiers, leaderboard, auditor views, operating-agreement document, bonds and slashing.
+4. **Roadmap:** streaming payments, performance bonds, reputation-based credit, invoice financing.
