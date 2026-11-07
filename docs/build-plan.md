@@ -27,7 +27,7 @@ Deadline: **2026-11-14 23:59 UTC**.
 ## Progress
 
 - [x] 1: Contracts workspace (Claude)
-- [ ] 2: Policy, part 1: state, guardian, withdraw
+- [x] 2: Policy, part 1: state, guardian, withdraw
 - [ ] 3: Policy, part 2: spending checks and approvals
 - [ ] 4: Policy, part 3: agent key and freeze
 - [ ] 5: Registry, part 1: create a company
