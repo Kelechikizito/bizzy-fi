@@ -15,11 +15,18 @@ A detailed guide for each checkpoint is written in `docs/checkpoints/` **when we
 
 Deadline: **2026-11-14 23:59 UTC**.
 
+## How we test (as we build, never at the end)
+
+- **You write unit tests for every method in the same checkpoint you write the method.** They live at the bottom of each `lib.rs` in `#[cfg(test)] mod tests` and use `testing_env!` to fake the caller, the time and attached NEAR (like `vm.prank`/`vm.warp`/`msg.value` in Foundry).
+- **Unit tests can't run cross-contract calls, key changes or sub-account creation.** Those happen in a later step on a real chain. For checkpoints that use them (4, 5, 7, 9, 16, 17), Claude adds a **sandbox test** at that same checkpoint: a real local NEAR node, so you see it working before moving on.
+- **Every checkpoint ends green:** build + `cargo test` pass, with no warnings from `cargo clippy`.
+- Security practices, fuzzing, mutation testing, static analysis and staging: see [security-testing.md](security-testing.md).
+
 ---
 
 ## Progress
 
-- [ ] 1: Contracts workspace (Claude)
+- [x] 1: Contracts workspace (Claude)
 - [ ] 2: Policy, part 1: state, guardian, withdraw
 - [ ] 3: Policy, part 2: spending checks and approvals
 - [ ] 4: Policy, part 3: agent key and freeze
@@ -128,13 +135,13 @@ Agent runner ◀── NEAR AI      ▼
 
 **Write.**
 - **State:** `guardian`, `registry`, `escrow`, caps (`per_deal_cap`, `period_cap`, `period_length`), `status` (Active / Suspended / Cooldown).
-- `#[init] new(...)`.
+- `#[init] new(...)`: only the parent account (the registry) may call it.
 - `assert_guardian()` helper.
-- `set_policy(...)` (guardian only; timelock comes later).
+- `set_limits(...)` (guardian only, 1 yoctoNEAR; timelock comes later).
 - `withdraw(amount, to)` (guardian only).
-- Views: `get_policy`, `get_status`.
+- Views: `get_limits`, `get_status`, `get_guardian`, `get_available_balance`.
 
-**Check.** `cargo near build non-reproducible-wasm`, plus Claude's small unit tests for the guardian check.
+**Check.** Build + your unit tests: the guardian can do each action, anyone else fails, `withdraw` can't exceed the balance.
 
 **Verified at the stop.** Every method that changes state checks the guardian first; `withdraw` can't send more than the balance.
 
@@ -171,7 +178,7 @@ Agent runner ◀── NEAR AI      ▼
 - `freeze()`: guardian only; deletes the key, sets Suspended, starts the cooldown.
 - `unfreeze()`: after the cooldown.
 
-**Check.** Build; Claude's sandbox test is added at checkpoint 10.
+**Check.** Build + your unit tests (only the guardian can call these, status changes). Claude adds a sandbox test that the key really appears, really works only for agent methods, and really disappears on freeze.
 
 **Verified at the stop.** The key's allowed methods list has only agent methods, never `withdraw`, `set_policy`, `approve` or the key methods.
 
@@ -189,7 +196,7 @@ Agent runner ◀── NEAR AI      ▼
 - `create_company(name, profile, referrer)` (payable).
 - `Company` record.
 
-**Check.** Build; tested in sandbox at checkpoint 10.
+**Check.** Build + your unit tests for name checks and deposits. Claude adds a sandbox test that `acme.<registry>` really gets created with the policy contract on it.
 
 **Verified at the stop.** A failed creation refunds the deposit, and no company record is saved until the creation succeeds (callback).
 
@@ -242,9 +249,9 @@ Agent runner ◀── NEAR AI      ▼
 
 **Verified at the stop.** For each call between contracts: what happens if it fails?
 
-## Checkpoint 10: Sandbox tests (Claude)
+## Checkpoint 10: Full-path sandbox tests (Claude)
 
-Integration tests in a local NEAR sandbox for the full path: create companies → set agent key → open deal → accept → milestone release → reputation; over-cap approval; freeze cancels escrow; dispute split and timeout. **You run them and fix any bugs they find.**
+The per-checkpoint sandbox tests joined into end-to-end runs of the full path: create companies → set agent key → open deal → accept → milestone release → reputation; over-cap approval; freeze cancels escrow; dispute split and timeout. **You run them and fix any bugs they find.**
 
 # Day 4 (Tue 10 Nov): testnet + app shell
 

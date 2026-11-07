@@ -55,6 +55,36 @@ cd .. && cargo test -p policy --lib
 
 Each build should end with `✓ Contract successfully built!`. The tests should show `7 passed`. (`non-reproducible-wasm` means a fast local build. The reproducible build, which anyone can repeat to get the exact same file, comes at the end.)
 
+## Your testing toolkit (used at every checkpoint)
+
+Run these from `contracts/`:
+
+| Command | What it does | Foundry equivalent |
+|---|---|---|
+| `cargo test -p policy` | all tests for one contract | `forge test` |
+| `cargo test -p policy withdraw` | only tests whose name contains `withdraw` | `forge test --mt withdraw` |
+| `cargo test -p policy -- --nocapture` | also shows `println!` output | `forge test -vv` |
+| `cargo clippy -p policy` | Rust's linter: catches mistakes and bad habits | `forge lint` / slither (lighter) |
+| `cargo fmt` | formats the code | `forge fmt` |
+| `cargo near build non-reproducible-wasm` (inside the contract folder) | builds the wasm | `forge build` |
+
+How a unit test looks (from the sample; you'll write these for every method):
+
+```rust
+#[test]
+#[should_panic(expected = "Auction has ended")]   // like vm.expectRevert("Auction has ended")
+fn bid_after_auction_ended() {
+    let mut contract = Contract::init(U64::from(1000), "auctioneer.near".parse().unwrap());
+    let mut context = get_context("alice.near".parse().unwrap()); // like vm.prank(alice)
+    context.block_timestamp(2000);                                  // like vm.warp(2000)
+    context.attached_deposit(NearToken::from_near(2));              // like msg.value = 2 NEAR
+    testing_env!(context.build());
+    let _ = contract.bid();
+}
+```
+
+**Optional, nice for "test as you build":** `cargo install bacon`, then run `bacon test` in `contracts/`. It reruns the tests every time you save a file.
+
 ## Verified at the stop
 
 Point to these in `policy/src/lib.rs` and say in a few words what each does:
