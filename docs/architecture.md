@@ -494,7 +494,7 @@ List every track that fits in the submission; lead the pitch with one.
 ### 14.12 Where trusted connections are stored
 | Option | Why |
 |---|---|
-| **Hashed on-chain (recommended)** | The policy contract stores a hash of each counterparty's account, which hides who works with whom from casual readers but still enforces the allowlist. Weak against a determined observer: account names are guessable (hash each candidate and compare), and escrow transfers between the two companies are visible anyway. |
+| **Hashed on-chain (recommended)** | The policy contract stores a hash of each counterparty's account, which hides who works with whom from casual readers but still enforces the allowlist. Weak against a determined observer: account names are guessable (hash each candidate and compare), and escrow transfers between the two companies are visible anyway. **Upgrade (checkpoint 9b):** salt the hash with a per-company secret kept off-chain, so names can't be matched against the public directory. |
 | Plain on-chain allowlist | Simplest to build, but publicly reveals business relationships, against "private by default" |
 | Off-chain, signed by both guardians | Most private, but the contract can't enforce it without extra signature checks |
 
