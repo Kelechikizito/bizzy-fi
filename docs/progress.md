@@ -1,4 +1,6 @@
-# Progress so far (checkpoints 1–9b)
+# Progress so far (checkpoints 1–10)
+
+> **The honest pitch:** an agentic B2B commerce platform on NEAR where deal terms and negotiations stay private, and only fingerprints and payments go on chain.
 
 ## The big picture
 
@@ -99,6 +101,7 @@ In short: **what** was agreed is private; **that** acme paid beta 2 NEAR is publ
 ## Known limits (to say honestly in the README)
 
 - **Paying a partner reveals that partner** (its salt is sent with the payment). The deal shows who paid whom anyway.
+- **Every agent request is a public transaction.** `open_deal` carries the partner and amount in the clear, because the contract needs them to check the limits. So pending approvals, and deals the guardian never approves, are visible to anyone reading transactions. Hiding them would need confidential payments, which is beyond the hackathon.
 - **The allowlist salts live in our backend.** If they're lost, the guardian re-adds partners; nothing on chain breaks.
 - **Sharing the policy code burns about 20 NEAR once** (NEAR charges 10× for shared code). It pays off from about the 10th company.
 - Someone could tell that two companies were verified by the **same** person (the World ID scrambled ID is the same), though not who it is.
