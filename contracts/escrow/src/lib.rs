@@ -1,15 +1,18 @@
 //! Bizzy-Fy escrow: holds a deal's NEAR until it is released to the seller or refunded.
 
 // ─── 1. Imports ────────────────────────────────────────────────────────────
+use bizzy_types::{Outcome, ext_registry};
 use near_sdk::json_types::{Base58CryptoHash, U64};
 use near_sdk::store::IterableMap;
 use near_sdk::{
-    AccountId, BorshStorageKey, NearToken, PanicOnDefault, Promise, env, near, require,
+    AccountId, BorshStorageKey, Gas, NearToken, PanicOnDefault, Promise, env, near, require,
 };
 
 /// Smallest deal: each deal costs storage, so tiny spam deals are refused.
 const MIN_DEAL: NearToken = NearToken::from_millinear(100);
 const MAX_MILESTONES: usize = 10;
+/// Gas for each reputation report to the registry.
+const GAS_FOR_REPORT: Gas = Gas::from_tgas(10);
 /// After a delivery, the buyer has this long to confirm or dispute (1 hour: short enough to demo).
 const REVIEW_WINDOW_NS: u64 = 60 * 60 * 1_000_000_000;
 /// After a dispute, the two sides have this long to agree a split; then the buyer is refunded.
@@ -62,7 +65,7 @@ pub struct Deal {
 #[near(contract_state)]
 #[derive(PanicOnDefault)]
 pub struct Contract {
-    /// Parent of every company account.
+    /// Parent of every company account, and the registry contract we report to.
     registry: AccountId,
     deals: IterableMap<u64, Deal>,
     next_deal_id: u64,
@@ -156,21 +159,23 @@ impl Contract {
 
     /// The buyer confirms delivery; the seller is paid the next milestone.
     pub fn confirm(&mut self, id: U64) -> Promise {
+        let registry = self.registry.clone();
         let deal = self.deal_mut(id);
         Self::assert_caller(&deal.buyer, "Only the buyer can do this");
         Self::assert_status(deal, DealStatus::Delivered);
-        Self::release_next(deal)
+        Self::release_next(&registry, deal)
     }
 
     /// Anyone may pay the next milestone once the buyer let the review window pass.
     pub fn release_due(&mut self, id: U64) -> Promise {
+        let registry = self.registry.clone();
         let deal = self.deal_mut(id);
         Self::assert_status(deal, DealStatus::Delivered);
         require!(
             env::block_timestamp() >= deal.updated_at.0.saturating_add(REVIEW_WINDOW_NS),
             "Review window not over"
         );
-        Self::release_next(deal)
+        Self::release_next(&registry, deal)
     }
 
     /// The buyer withdraws an offer the seller hasn't accepted yet.
@@ -206,6 +211,7 @@ impl Contract {
 
     /// Offers to give the seller `seller_share` of what's left. Pays out once both sides offer the same.
     pub fn propose_split(&mut self, id: U64, seller_share: NearToken) {
+        let registry = self.registry.clone();
         let deal = self.deal_mut(id);
         Self::assert_party(deal);
         Self::assert_status(deal, DealStatus::Disputed);
@@ -227,6 +233,13 @@ impl Contract {
                     Promise::new(to.clone()).transfer(amount).detach();
                 }
             }
+            // Whoever got at least half of what was left counts as the winner.
+            let (seller, buyer) = if seller_share.saturating_mul(2) >= remaining {
+                (Outcome::DisputeWon, Outcome::DisputeLost)
+            } else {
+                (Outcome::DisputeLost, Outcome::DisputeWon)
+            };
+            Self::report(&registry, deal, seller, buyer);
         } else {
             deal.split_offer = Some((caller, seller_share));
         }
@@ -234,12 +247,14 @@ impl Contract {
 
     /// Anyone may refund the buyer if a dispute wasn't settled in time.
     pub fn refund_on_timeout(&mut self, id: U64) -> Promise {
+        let registry = self.registry.clone();
         let deal = self.deal_mut(id);
         Self::assert_status(deal, DealStatus::Disputed);
         require!(
             env::block_timestamp() >= deal.updated_at.0.saturating_add(DISPUTE_WINDOW_NS),
             "Dispute window not over"
         );
+        Self::report(&registry, deal, Outcome::DisputeLost, Outcome::DisputeWon);
         Self::refund(deal)
     }
 
@@ -276,8 +291,10 @@ impl Contract {
     }
 
     /// Pays the next milestone. Released if it was the last, else back to Accepted.
-    fn release_next(deal: &mut Deal) -> Promise {
+    /// When the last milestone is paid, reports the deal to the registry.
+    fn release_next(registry: &AccountId, deal: &mut Deal) -> Promise {
         let amount = deal.milestones[deal.paid as usize];
+        let delivered_at = deal.updated_at.0;
         deal.paid += 1;
         deal.status = if deal.paid as usize == deal.milestones.len() {
             DealStatus::Released
@@ -285,7 +302,29 @@ impl Contract {
             DealStatus::Accepted
         };
         deal.updated_at = U64(env::block_timestamp());
+        if deal.status == DealStatus::Released {
+            let seller = if delivered_at <= deal.deliver_by.0 {
+                Outcome::OnTime
+            } else {
+                Outcome::Late
+            };
+            Self::report(registry, deal, seller, Outcome::OnTime);
+        }
         Promise::new(deal.seller.clone()).transfer(amount)
+    }
+
+    /// Tells the registry how the deal went for each side. Fire and forget:
+    /// the money is already settled, so a failed report loses only that update.
+    fn report(registry: &AccountId, deal: &Deal, seller: Outcome, buyer: Outcome) {
+        for (company, counterparty, outcome) in [
+            (&deal.seller, &deal.buyer, seller),
+            (&deal.buyer, &deal.seller, buyer),
+        ] {
+            ext_registry::ext(registry.clone())
+                .with_static_gas(GAS_FOR_REPORT)
+                .record_outcome(company.clone(), counterparty.clone(), outcome, deal.amount)
+                .detach();
+        }
     }
 
     /// Marks the deal Refunded and sends what's left back to the buyer.
@@ -325,7 +364,7 @@ impl Contract {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use near_sdk::test_utils::VMContextBuilder;
+    use near_sdk::test_utils::{VMContextBuilder, get_created_receipts};
     use near_sdk::testing_env;
 
     const REGISTRY: &str = "bizzyfy.testnet";
@@ -430,6 +469,14 @@ mod tests {
     fn propose(contract: &mut Contract, id: U64, who: &str, millinear: u128) {
         set_caller(who, NearToken::from_near(0), 0);
         contract.propose_split(id, NearToken::from_millinear(millinear));
+    }
+
+    /// How many calls the last method sent to the registry.
+    fn reports() -> usize {
+        get_created_receipts()
+            .iter()
+            .filter(|r| r.receiver_id == account(REGISTRY))
+            .count()
     }
 
     fn status(contract: &Contract, id: U64) -> DealStatus {
@@ -744,5 +791,31 @@ mod tests {
         set_caller("anyone.testnet", NearToken::from_near(0), DISPUTE_WINDOW_NS);
         let _ = contract.refund_on_timeout(id);
         assert_eq!(status(&contract, id), DealStatus::Refunded);
+    }
+
+    /// Test 33: a released deal is reported for both sides.
+    #[test]
+    fn release_reports_both_sides() {
+        let (mut contract, id) = delivered();
+        set_caller(BUYER, NearToken::from_near(0), 0);
+        let _ = contract.confirm(id);
+        assert_eq!(reports(), 2);
+    }
+
+    /// Test 34: paying a milestone that isn't the last reports nothing yet.
+    #[test]
+    fn first_milestone_reports_nothing() {
+        let (mut contract, id) = two_milestones();
+        deliver_and_confirm(&mut contract, id);
+        assert_eq!(reports(), 0);
+    }
+
+    /// Test 35: a dispute that times out is reported for both sides.
+    #[test]
+    fn timeout_reports_both_sides() {
+        let (mut contract, id) = disputed();
+        set_caller("anyone.testnet", NearToken::from_near(0), DISPUTE_WINDOW_NS);
+        let _ = contract.refund_on_timeout(id);
+        assert_eq!(reports(), 2);
     }
 }

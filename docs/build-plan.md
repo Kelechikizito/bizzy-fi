@@ -34,7 +34,7 @@ Deadline: **2026-11-14 23:59 UTC**.
 - [x] 6: Registry, part 2: attestations and reputation
 - [x] 7: Escrow: full lifecycle
 - [x] 8: Escrow: milestones, auto-release, disputes
-- [ ] 9: Wiring the three contracts together
+- [x] 9: Wiring the three contracts together
 - [ ] 9b: Privacy and cost fixes: salted allowlist, shared policy code
 - [ ] 10: Sandbox tests (Claude)
 - [ ] 11: Testnet deploy and demo seed (Claude)
@@ -255,7 +255,7 @@ Agent runner ◀── NEAR AI      ▼
 **Goal.** Close two gaps found after checkpoint 8.
 
 **Write.**
-- **Salted allowlist (policy).** Store `hash(salt + account)`, not `hash(account)`. The salt is a random secret per company, kept off-chain by the app; `request_spend` takes it as an argument. Today anyone can hash every name in the public directory and match the allowlist; with a salt they can't.
+- **Salted allowlist (policy).** Store `hash(salt + account)`, not `hash(account)`. The salt is a random secret per company, kept off-chain by the app; `open_deal` takes it as an argument. Today anyone can hash every name in the public directory and match the allowlist; with a salt they can't.
 - **Shared policy code (registry).** Upload the policy code once as a NEAR **global contract** and have each new company point to it, instead of storing its own 170 KB copy. Each company then locks far less NEAR, so the 3 NEAR minimum can drop. Check global-contract support on testnet and in the sandbox first, and its one-time upload price, in the NEAR docs.
 
 **Verified at the stop.** No allowlist hash can be recomputed from public data alone. A new company still runs the exact policy code, can't be changed afterwards, and needs a smaller deposit.

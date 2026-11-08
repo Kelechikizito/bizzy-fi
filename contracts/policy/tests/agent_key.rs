@@ -63,21 +63,20 @@ async fn agent_key_lifecycle() -> testresult::TestResult {
         .send_to(&net)
         .await?
         .assert_success();
-    // On chain, the key may call only request_spend, only on the company account.
+    // On chain, the key may call only open_deal and deal_action, only on the company account.
     let Some(AccessKeyPermission::FunctionCall(permission)) =
         key_permission(&company, &agent_public.to_string(), &net).await?
     else {
         panic!("agent key missing or full-access");
     };
     assert_eq!(permission.receiver_id, company.to_string());
-    assert_eq!(permission.method_names, vec!["request_spend"]);
+    assert_eq!(permission.method_names, vec!["open_deal", "deal_action"]);
 
-    // The agent key can call request_spend...
+    // The agent key can call open_deal (no escrow is deployed here, so the deal itself
+    // fails and the callback undoes it, but the call is allowed)...
+    let deal = json!({ "deal": { "seller": seller, "terms_hash": "11111111111111111111111111111111", "deliver_by": "1", "milestones": ["1"] } });
     policy
-        .call_function(
-            "request_spend",
-            json!({ "counterparty": seller, "amount": "1" }),
-        )
+        .call_function("open_deal", deal.clone())
         .transaction()
         .with_signer(company.clone(), agent.clone())
         .send_to(&net)
@@ -116,10 +115,7 @@ async fn agent_key_lifecycle() -> testresult::TestResult {
             .is_none()
     );
     let after_freeze = policy
-        .call_function(
-            "request_spend",
-            json!({ "counterparty": seller, "amount": "1" }),
-        )
+        .call_function("open_deal", deal)
         .transaction()
         .with_signer(company.clone(), agent)
         .send_to(&net)

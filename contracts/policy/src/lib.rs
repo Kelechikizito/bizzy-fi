@@ -1,21 +1,38 @@
 //! Bizzy-Fy policy contract: holds a company's funds and enforces its guardian's rules.
 
 // ─── 1. Imports ────────────────────────────────────────────────────────────
+use bizzy_types::{DealRequest, Limits, ext_escrow};
 use near_sdk::json_types::{Base58CryptoHash, U64};
+use near_sdk::serde_json::Value;
 use near_sdk::store::{IterableMap, LookupSet};
 use near_sdk::{
-    AccountId, Allowance, BorshStorageKey, CryptoHash, NearToken, PanicOnDefault, Promise,
-    PublicKey, assert_one_yocto, env, near, require,
+    AccountId, Allowance, BorshStorageKey, CryptoHash, Gas, NearToken, PanicOnDefault, Promise,
+    PromiseError, PromiseOrValue, PublicKey, assert_one_yocto, env, near, require,
 };
 
 /// Most spends that may wait for the guardian at once.
 const MAX_PENDING: u32 = 20;
 /// The only methods the agent's key may call.
-const AGENT_METHODS: &str = "request_spend";
+const AGENT_METHODS: &str = "open_deal,deal_action";
+/// Escrow actions the agent may take through `deal_action`.
+const AGENT_DEAL_METHODS: [&str; 4] = ["accept_deal", "mark_delivered", "confirm", "cancel"];
+/// Escrow actions the guardian may take: the agent's, plus disputes and splits.
+const GUARDIAN_DEAL_METHODS: [&str; 6] = [
+    "accept_deal",
+    "mark_delivered",
+    "confirm",
+    "cancel",
+    "dispute",
+    "propose_split",
+];
 /// Gas the agent's key may burn.
 const AGENT_GAS_ALLOWANCE: NearToken = NearToken::from_near(1);
 /// Wait after a freeze before unfreezing (1 hour, short enough to demo).
 const COOLDOWN_NS: u64 = 60 * 60 * 1_000_000_000;
+const GAS_FOR_ESCROW: Gas = Gas::from_tgas(20);
+const GAS_FOR_CALLBACK: Gas = Gas::from_tgas(10);
+/// Enough for the escrow to pay out and report to the registry.
+const GAS_FOR_DEAL_ACTION: Gas = Gas::from_tgas(50);
 
 /// Storage prefixes, one per collection.
 #[near]
@@ -34,36 +51,26 @@ pub enum Status {
     Suspended,
 }
 
-// ─── 3. Limits struct ──────────────────────────────────────────────────────
-/// The company's spending rules.
-#[near(serializers = [json, borsh])]
-#[derive(Clone, PartialEq, Debug)]
-pub struct Limits {
-    /// Most the agent may spend on one deal.
-    pub per_deal_cap: NearToken,
-    /// Most the agent may spend in one period.
-    pub period_cap: NearToken,
-    /// Length of a spending period, in nanoseconds.
-    pub period_length_ns: U64,
-    /// Only allowlisted counterparties may be paid.
-    pub allowlist_only: bool,
-}
-
-/// A spend over the caps, waiting for the guardian.
+// ─── 3. Approval types (Limits lives in the shared `bizzy-types` crate) ──────
+/// A deal over the caps, waiting for the guardian.
 #[near(serializers = [json, borsh])]
 #[derive(Clone, PartialEq, Debug)]
 pub struct PendingApproval {
-    pub counterparty: AccountId,
+    pub deal: DealRequest,
     pub amount: NearToken,
     pub created_at: U64,
 }
 
-/// What happened to a spend request.
+/// What happened to a deal the agent asked for.
 #[near(serializers = [json])]
 #[derive(PartialEq, Debug)]
 pub enum SpendDecision {
-    Approved,
+    /// The escrow holds the money.
+    Opened { deal_id: U64 },
+    /// Over a cap: waiting for the guardian.
     NeedsApproval { id: U64 },
+    /// The escrow refused; the money and the spent total are back.
+    Failed,
 }
 
 // ─── 4. Contract state ─────────────────────────────────────────────────────
@@ -121,12 +128,17 @@ impl Contract {
         }
     }
 
-    /// The agent asks to spend. Approved, or saved for the guardian if over a cap.
-    pub fn request_spend(&mut self, counterparty: AccountId, amount: NearToken) -> SpendDecision {
+    /// The agent asks to open a deal. Within the caps it goes to the escrow;
+    /// over a cap it waits for the guardian.
+    pub fn open_deal(&mut self, deal: DealRequest) -> PromiseOrValue<SpendDecision> {
         self.assert_agent();
+        let amount = deal
+            .milestones
+            .iter()
+            .fold(NearToken::from_near(0), |total, m| total.saturating_add(*m));
         require!(!amount.is_zero(), "Amount must be above 0");
         require!(
-            counterparty != env::current_account_id(),
+            deal.seller != env::current_account_id(),
             "Can't pay yourself"
         );
         self.roll_period();
@@ -135,7 +147,7 @@ impl Contract {
         require!(self.status == Status::Active, "Agent is not active");
         require!(
             !self.limits.allowlist_only
-                || self.allowlist.contains(&Self::hash_account(&counterparty)),
+                || self.allowlist.contains(&Self::hash_account(&deal.seller)),
             "Counterparty is not allowed"
         );
 
@@ -146,8 +158,7 @@ impl Contract {
             .period_cap
             .saturating_sub(self.spent_this_period);
         if within_deal && amount <= left {
-            self.spent_this_period = self.spent_this_period.saturating_add(amount);
-            return SpendDecision::Approved;
+            return PromiseOrValue::Promise(self.start_deal(deal, amount));
         }
 
         require!(
@@ -159,12 +170,54 @@ impl Contract {
         self.approvals.insert(
             id,
             PendingApproval {
-                counterparty,
+                deal,
                 amount,
                 created_at: U64(env::block_timestamp()),
             },
         );
-        SpendDecision::NeedsApproval { id: U64(id) }
+        PromiseOrValue::Value(SpendDecision::NeedsApproval { id: U64(id) })
+    }
+
+    /// Learns whether the escrow opened the deal; if not, takes the amount off this period.
+    #[private]
+    pub fn on_deal_opened(
+        &mut self,
+        amount: NearToken,
+        period_start: U64,
+        #[callback_result] result: Result<U64, PromiseError>,
+    ) -> SpendDecision {
+        match result {
+            Ok(deal_id) => SpendDecision::Opened { deal_id },
+            Err(_) => {
+                // Same period only: a new period already started from 0.
+                if period_start.0 == self.period_start {
+                    self.spent_this_period = self.spent_this_period.saturating_sub(amount);
+                }
+                SpendDecision::Failed
+            }
+        }
+    }
+
+    /// Forwards a deal action to the escrow, which sees this company as the caller.
+    /// The agent may use AGENT_DEAL_METHODS; the guardian (1 yocto) GUARDIAN_DEAL_METHODS.
+    #[payable]
+    pub fn deal_action(&mut self, method: String, args: Value) -> Promise {
+        let caller = env::predecessor_account_id();
+        let allowed = if caller == env::current_account_id() {
+            self.status == Status::Active && AGENT_DEAL_METHODS.contains(&method.as_str())
+        } else if caller == self.guardian {
+            assert_one_yocto();
+            GUARDIAN_DEAL_METHODS.contains(&method.as_str())
+        } else {
+            false
+        };
+        require!(allowed, "Not allowed");
+        Promise::new(self.escrow.clone()).function_call(
+            method,
+            args.to_string().into_bytes(),
+            NearToken::from_yoctonear(0),
+            GAS_FOR_DEAL_ACTION,
+        )
     }
 
     /// Adds a counterparty hash to the allowlist. Guardian only.
@@ -229,9 +282,9 @@ impl Contract {
         self.status = Status::Active;
     }
 
-    /// Approves a pending spend, even past the caps. Guardian only.
+    /// Approves a pending deal, even past the caps, and opens it. Guardian only.
     #[payable]
-    pub fn approve(&mut self, id: U64) {
+    pub fn approve(&mut self, id: U64) -> Promise {
         assert_one_yocto();
         self.assert_guardian();
         let approval = self
@@ -239,7 +292,7 @@ impl Contract {
             .remove(&id.0)
             .unwrap_or_else(|| env::panic_str("No such approval"));
         self.roll_period();
-        self.spent_this_period = self.spent_this_period.saturating_add(approval.amount);
+        self.start_deal(approval.deal, approval.amount)
     }
 
     /// Rejects a pending spend. Guardian only.
@@ -388,6 +441,26 @@ impl Contract {
         }
     }
 
+    /// Counts `amount` this period and sends it to the escrow for `deal`, with a callback.
+    fn start_deal(&mut self, deal: DealRequest, amount: NearToken) -> Promise {
+        require!(amount <= Self::available_balance(), "Not enough balance");
+        self.spent_this_period = self.spent_this_period.saturating_add(amount);
+        ext_escrow::ext(self.escrow.clone())
+            .with_attached_deposit(amount)
+            .with_static_gas(GAS_FOR_ESCROW)
+            .create_deal(
+                deal.seller,
+                deal.terms_hash,
+                deal.deliver_by,
+                deal.milestones,
+            )
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(GAS_FOR_CALLBACK)
+                    .on_deal_opened(amount, U64(self.period_start)),
+            )
+    }
+
     /// Balance minus the part locked to pay for storage.
     fn available_balance() -> NearToken {
         let locked = env::storage_byte_cost().saturating_mul(env::storage_usage() as u128);
@@ -433,7 +506,7 @@ mod tests {
             .predecessor_account_id(account(caller))
             .attached_deposit(deposit)
             .block_timestamp(timestamp)
-            .account_balance(NearToken::from_near(10));
+            .account_balance(NearToken::from_near(100));
         testing_env!(context.build());
     }
 
@@ -441,16 +514,50 @@ mod tests {
         NearToken::from_near(amount)
     }
 
-    /// The agent asks to pay SELLER `amount` NEAR.
-    fn agent_spends(contract: &mut Contract, amount: u128) -> SpendDecision {
+    /// What an agent's deal request did, for asserts.
+    #[derive(PartialEq, Debug)]
+    enum Spend {
+        /// Sent to the escrow (a Promise).
+        Opened,
+        /// Waiting for the guardian.
+        Pending(U64),
+    }
+
+    /// A one-milestone deal of `amount` NEAR with SELLER.
+    fn deal(amount: u128) -> DealRequest {
+        DealRequest {
+            seller: account(SELLER),
+            terms_hash: [1; 32].into(),
+            deliver_by: U64(1),
+            milestones: vec![near(amount)],
+        }
+    }
+
+    /// The agent asks for a deal of `amount` NEAR with SELLER.
+    fn agent_spends(contract: &mut Contract, amount: u128) -> Spend {
         set_caller(COMPANY);
-        contract.request_spend(account(SELLER), near(amount))
+        match contract.open_deal(deal(amount)) {
+            PromiseOrValue::Promise(_) => Spend::Opened,
+            PromiseOrValue::Value(SpendDecision::NeedsApproval { id }) => Spend::Pending(id),
+            PromiseOrValue::Value(other) => panic!("unexpected {other:?}"),
+        }
+    }
+
+    /// Runs the deal callback as the contract itself.
+    fn callback(
+        contract: &mut Contract,
+        amount: u128,
+        period_start: u64,
+        result: Result<U64, PromiseError>,
+    ) -> SpendDecision {
+        set_caller(COMPANY);
+        contract.on_deal_opened(near(amount), U64(period_start), result)
     }
 
     /// Fills the queue with one spend over the per-deal cap; returns its id.
     fn pending_spend(contract: &mut Contract) -> U64 {
         match agent_spends(contract, 6) {
-            SpendDecision::NeedsApproval { id } => id,
+            Spend::Pending(id) => id,
             other => panic!("expected NeedsApproval, got {other:?}"),
         }
     }
@@ -551,7 +658,7 @@ mod tests {
     fn withdraw_more_than_available_fails() {
         let mut contract = setup();
         set_caller_with_deposit(GUARDIAN, one_yocto());
-        let _ = contract.withdraw(NearToken::from_near(10), account(GUARDIAN));
+        let _ = contract.withdraw(NearToken::from_near(100), account(GUARDIAN));
     }
 
     /// Test 9: withdrawing 0 is refused.
@@ -582,7 +689,7 @@ mod tests {
         assert_eq!(contract.get_guardian(), account(GUARDIAN));
 
         let available = contract.get_available_balance();
-        assert!(available < NearToken::from_near(10));
+        assert!(available < NearToken::from_near(100));
         assert!(!available.is_zero());
     }
 
@@ -590,17 +697,17 @@ mod tests {
     #[test]
     fn spend_within_caps_is_approved() {
         let mut contract = setup();
-        assert_eq!(agent_spends(&mut contract, 3), SpendDecision::Approved);
+        assert_eq!(agent_spends(&mut contract, 3), Spend::Opened);
         assert_eq!(contract.get_spent_this_period(), near(3));
     }
 
     /// Test 13: only the agent can ask to spend.
     #[test]
     #[should_panic(expected = "Only the agent can do this")]
-    fn stranger_cannot_request_spend() {
+    fn stranger_cannot_open_deal() {
         let mut contract = setup();
         set_caller("stranger.testnet");
-        contract.request_spend(account(SELLER), near(3));
+        let _ = contract.open_deal(deal(3));
     }
 
     /// Test 14: spending 0 is refused.
@@ -638,17 +745,14 @@ mod tests {
         contract.allow_counterparty(seller_hash());
         assert!(contract.is_allowed(seller_hash()));
 
-        assert_eq!(agent_spends(&mut contract, 3), SpendDecision::Approved);
+        assert_eq!(agent_spends(&mut contract, 3), Spend::Opened);
     }
 
     /// Test 18: over the per-deal cap goes to the guardian; nothing counted.
     #[test]
     fn over_per_deal_cap_needs_approval() {
         let mut contract = setup();
-        assert_eq!(
-            agent_spends(&mut contract, 6),
-            SpendDecision::NeedsApproval { id: U64(0) }
-        );
+        assert_eq!(agent_spends(&mut contract, 6), Spend::Pending(U64(0)));
         assert!(contract.get_spent_this_period().is_zero());
     }
 
@@ -657,12 +761,9 @@ mod tests {
     fn over_period_cap_needs_approval() {
         let mut contract = setup();
         for _ in 0..4 {
-            assert_eq!(agent_spends(&mut contract, 5), SpendDecision::Approved);
+            assert_eq!(agent_spends(&mut contract, 5), Spend::Opened);
         }
-        assert_eq!(
-            agent_spends(&mut contract, 1),
-            SpendDecision::NeedsApproval { id: U64(0) }
-        );
+        assert_eq!(agent_spends(&mut contract, 1), Spend::Pending(U64(0)));
         assert_eq!(contract.get_spent_this_period(), near(20));
     }
 
@@ -675,10 +776,10 @@ mod tests {
         }
         set_caller_at(COMPANY, NearToken::from_yoctonear(0), ONE_WEEK_NS);
         assert!(contract.get_spent_this_period().is_zero());
-        assert_eq!(
-            contract.request_spend(account(SELLER), near(5)),
-            SpendDecision::Approved
-        );
+        assert!(matches!(
+            contract.open_deal(deal(5)),
+            PromiseOrValue::Promise(_)
+        ));
         assert_eq!(contract.get_spent_this_period(), near(5));
     }
 
@@ -688,7 +789,7 @@ mod tests {
         let mut contract = setup();
         let id = pending_spend(&mut contract);
         set_caller_with_deposit(GUARDIAN, one_yocto());
-        contract.approve(id);
+        let _ = contract.approve(id);
 
         assert!(contract.get_pending_approvals(0, 10).is_empty());
         assert_eq!(contract.get_spent_this_period(), near(6));
@@ -713,7 +814,7 @@ mod tests {
         let mut contract = setup();
         let id = pending_spend(&mut contract);
         set_caller_with_deposit("stranger.testnet", one_yocto());
-        contract.approve(id);
+        let _ = contract.approve(id);
     }
 
     /// Test 24: approving an unknown id fails.
@@ -722,7 +823,7 @@ mod tests {
     fn approve_unknown_id_fails() {
         let mut contract = setup();
         set_caller_with_deposit(GUARDIAN, one_yocto());
-        contract.approve(U64(7));
+        let _ = contract.approve(U64(7));
     }
 
     /// Test 25: the 21st pending approval is refused.
@@ -851,6 +952,110 @@ mod tests {
         contract.unfreeze();
     }
 
+    /// Test 36: a pending approval keeps the whole deal, so approve opens that exact deal.
+    #[test]
+    fn pending_approval_keeps_deal() {
+        let mut contract = setup();
+        let id = pending_spend(&mut contract);
+        let (_, approval) = contract.get_pending_approvals(0, 1).remove(0);
+        assert_eq!(approval.deal, deal(6));
+        assert_eq!(approval.amount, near(6));
+        assert_eq!(id, U64(0));
+    }
+
+    /// Test 37: the agent can't open a deal bigger than the balance.
+    #[test]
+    #[should_panic(expected = "Not enough balance")]
+    fn deal_above_balance_fails() {
+        let mut contract = setup();
+        contract.limits = limits(200, 400);
+        agent_spends(&mut contract, 150);
+    }
+
+    /// Test 38: the escrow opened the deal; the spent total stays.
+    #[test]
+    fn callback_ok_opens() {
+        let mut contract = setup();
+        agent_spends(&mut contract, 3);
+        assert_eq!(
+            callback(&mut contract, 3, 0, Ok(U64(5))),
+            SpendDecision::Opened { deal_id: U64(5) }
+        );
+        assert_eq!(contract.get_spent_this_period(), near(3));
+    }
+
+    /// Test 39: the escrow refused; the spent total goes back down.
+    #[test]
+    fn callback_err_undoes_spend() {
+        let mut contract = setup();
+        agent_spends(&mut contract, 3);
+        assert_eq!(
+            callback(&mut contract, 3, 0, Err(PromiseError::Failed)),
+            SpendDecision::Failed
+        );
+        assert!(contract.get_spent_this_period().is_zero());
+    }
+
+    /// Test 40: a refusal from an old period doesn't touch the new period's total.
+    #[test]
+    fn callback_err_after_roll_keeps_new_period() {
+        let mut contract = setup();
+        agent_spends(&mut contract, 3);
+        set_caller_at(COMPANY, NearToken::from_yoctonear(0), ONE_WEEK_NS);
+        let _ = contract.open_deal(deal(2));
+        assert_eq!(
+            callback(&mut contract, 3, 0, Err(PromiseError::Failed)),
+            SpendDecision::Failed
+        );
+        assert_eq!(contract.spent_this_period, near(2));
+    }
+
+    /// Runs `deal_action(method)` as `caller` with `deposit`.
+    fn act(contract: &mut Contract, caller: &str, deposit: NearToken, method: &str) -> Promise {
+        set_caller_with_deposit(caller, deposit);
+        contract.deal_action(method.into(), near_sdk::serde_json::json!({ "id": "0" }))
+    }
+
+    /// Test 41: the agent confirms a delivery through the policy.
+    #[test]
+    fn agent_confirms() {
+        let mut contract = setup();
+        let _ = act(
+            &mut contract,
+            COMPANY,
+            NearToken::from_yoctonear(0),
+            "confirm",
+        );
+    }
+
+    /// Test 42: the agent can't start a dispute.
+    #[test]
+    #[should_panic(expected = "Not allowed")]
+    fn agent_cannot_dispute() {
+        let mut contract = setup();
+        let _ = act(
+            &mut contract,
+            COMPANY,
+            NearToken::from_yoctonear(0),
+            "dispute",
+        );
+    }
+
+    /// Test 43: the guardian disputes with 1 yocto.
+    #[test]
+    fn guardian_disputes() {
+        let mut contract = setup();
+        let _ = act(&mut contract, GUARDIAN, one_yocto(), "dispute");
+    }
+
+    /// Test 44: a stranger can't act on deals.
+    #[test]
+    #[should_panic(expected = "Not allowed")]
+    fn stranger_cannot_act() {
+        let mut contract = setup();
+        let _ = act(&mut contract, "stranger.testnet", one_yocto(), "confirm");
+    }
+
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(32))]
 
@@ -869,7 +1074,7 @@ mod tests {
         fn approved_spends_within_per_deal_cap(amounts in prop::collection::vec(1u128..=10, 0..20)) {
             let mut contract = setup();
             for amount in amounts {
-                if agent_spends(&mut contract, amount) == SpendDecision::Approved {
+                if agent_spends(&mut contract, amount) == Spend::Opened {
                     prop_assert!(near(amount) <= contract.limits.per_deal_cap);
                 }
             }

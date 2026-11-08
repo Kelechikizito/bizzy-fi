@@ -1,8 +1,9 @@
 //! Bizzy-Fy registry: creates company accounts and keeps the company directory.
 
 // ─── 1. Imports ────────────────────────────────────────────────────────────
+use bizzy_types::{Limits, Outcome};
 use near_sdk::json_types::{Base58CryptoHash, U64};
-use near_sdk::serde_json::{Value, json};
+use near_sdk::serde_json::json;
 use near_sdk::store::{IterableMap, LazyOption, LookupMap, LookupSet};
 use near_sdk::{
     AccountId, BorshStorageKey, CryptoHash, Gas, NearToken, PanicOnDefault, Promise, env, near,
@@ -24,16 +25,6 @@ enum StorageKey {
     Companies,
     Humans,
     SeenPairs,
-}
-
-/// How a deal ended for one side, as reported by the escrow.
-#[near(serializers = [json, borsh])]
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub enum Outcome {
-    OnTime,
-    Late,
-    DisputeWon,
-    DisputeLost,
 }
 
 /// Counts written only by the escrow contract.
@@ -132,7 +123,7 @@ impl Contract {
         name: String,
         about: String,
         referrer: Option<AccountId>,
-        limits: Value,
+        limits: Limits,
     ) -> Promise {
         let code = self
             .policy_code
@@ -381,8 +372,16 @@ mod tests {
         referrer: Option<&str>,
     ) {
         testing_env!(context(GUARDIAN, NearToken::from_near(deposit)));
-        let _ =
-            contract.create_company(name.into(), about.into(), referrer.map(account), json!({}));
+        let _ = contract.create_company(name.into(), about.into(), referrer.map(account), limits());
+    }
+
+    fn limits() -> Limits {
+        Limits {
+            per_deal_cap: NearToken::from_near(1),
+            period_cap: NearToken::from_near(2),
+            period_length_ns: U64(1_000),
+            allowlist_only: false,
+        }
     }
 
     /// Puts a company straight into the directory.
