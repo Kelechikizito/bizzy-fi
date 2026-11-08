@@ -32,6 +32,6 @@ bizzy-fi is a NEAR HACKATHON entry: agentic B2B commerce, where AI agents negoti
 
 ## Repo
 
-- The project root is the only git repo (remote: `Kelechikizito/bizzy-fi`). Never run `git init` or `create-*-app` in a way that leaves a nested `.git`, because git then tracks the folder as an empty gitlink. Never push, force-push, or make the repo public without confirmation.
+- The project root is the only git repo (remote: `Kelechikizito/bizzy-fy`). Never run `git init` or `create-*-app` in a way that leaves a nested `.git`, because git then tracks the folder as an empty gitlink. Never push, force-push, or make the repo public without confirmation.
 - Keys and secrets go in env vars (`.env*` is gitignored), never in the repo.
 - The README must be judge-readable: what it is, the problem, and "do X → see Y" steps. Development ends 2026-11-14T23:59:00Z.
