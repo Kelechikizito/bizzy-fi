@@ -31,7 +31,7 @@ async fn create_company_works_and_refunds() -> testresult::TestResult {
         .use_code(registry_wasm)
         .with_init_call(
             "new",
-            json!({ "owner": registry, "escrow": "escrow.sandbox" }),
+            json!({ "owner": registry, "escrow": "escrow.sandbox", "attester": registry }),
         )?
         .with_signer(root.clone())
         .send_to(&net)
