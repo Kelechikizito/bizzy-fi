@@ -130,7 +130,12 @@ impl Contract {
 
     /// The agent asks to open a deal. Within the caps it goes to the escrow;
     /// over a cap it waits for the guardian.
-    pub fn open_deal(&mut self, deal: DealRequest) -> PromiseOrValue<SpendDecision> {
+    /// `salt` is the allowlist entry's secret for this seller (needed only with `allowlist_only`).
+    pub fn open_deal(
+        &mut self,
+        deal: DealRequest,
+        salt: Option<Base58CryptoHash>,
+    ) -> PromiseOrValue<SpendDecision> {
         self.assert_agent();
         let amount = deal
             .milestones
@@ -147,7 +152,10 @@ impl Contract {
         require!(self.status == Status::Active, "Agent is not active");
         require!(
             !self.limits.allowlist_only
-                || self.allowlist.contains(&Self::hash_account(&deal.seller)),
+                || salt.is_some_and(|salt| {
+                    let hash = Self::hash_account(&salt.into(), &deal.seller);
+                    self.allowlist.contains(&hash)
+                }),
             "Counterparty is not allowed"
         );
 
@@ -420,9 +428,10 @@ impl Contract {
         );
     }
 
-    /// SHA-256 of an account ID, so the allowlist never stores names.
-    fn hash_account(account: &AccountId) -> CryptoHash {
-        env::sha256_array(account.as_bytes())
+    /// SHA-256 of salt + account ID. The allowlist stores only these, and without
+    /// the entry's secret salt nobody can match them to names.
+    fn hash_account(salt: &CryptoHash, account: &AccountId) -> CryptoHash {
+        env::sha256_array([salt.as_slice(), account.as_bytes()].concat())
     }
 
     /// True once the current period is over.
@@ -535,8 +544,17 @@ mod tests {
 
     /// The agent asks for a deal of `amount` NEAR with SELLER.
     fn agent_spends(contract: &mut Contract, amount: u128) -> Spend {
+        agent_spends_salted(contract, amount, None)
+    }
+
+    /// Like `agent_spends`, sending an allowlist salt.
+    fn agent_spends_salted(
+        contract: &mut Contract,
+        amount: u128,
+        salt: Option<CryptoHash>,
+    ) -> Spend {
         set_caller(COMPANY);
-        match contract.open_deal(deal(amount)) {
+        match contract.open_deal(deal(amount), salt.map(Into::into)) {
             PromiseOrValue::Promise(_) => Spend::Opened,
             PromiseOrValue::Value(SpendDecision::NeedsApproval { id }) => Spend::Pending(id),
             PromiseOrValue::Value(other) => panic!("unexpected {other:?}"),
@@ -563,8 +581,20 @@ mod tests {
     }
 
     /// The hash the app would send for SELLER.
+    /// The secret salt the app keeps for SELLER's allowlist entry.
+    const SALT: CryptoHash = [7; 32];
+
     fn seller_hash() -> Base58CryptoHash {
-        Contract::hash_account(&account(SELLER)).into()
+        Contract::hash_account(&SALT, &account(SELLER)).into()
+    }
+
+    /// An `allowlist_only` policy where the guardian allowed SELLER.
+    fn seller_allowed() -> Contract {
+        let mut contract = setup();
+        contract.limits.allowlist_only = true;
+        set_caller_with_deposit(GUARDIAN, one_yocto());
+        contract.allow_counterparty(seller_hash());
+        contract
     }
 
     /// A policy created by the registry, ready to use.
@@ -707,7 +737,7 @@ mod tests {
     fn stranger_cannot_open_deal() {
         let mut contract = setup();
         set_caller("stranger.testnet");
-        let _ = contract.open_deal(deal(3));
+        let _ = contract.open_deal(deal(3), None);
     }
 
     /// Test 14: spending 0 is refused.
@@ -736,16 +766,15 @@ mod tests {
         agent_spends(&mut contract, 3);
     }
 
-    /// Test 17: with allowlist_only, a counterparty the guardian allowed is fine.
+    /// Test 17: with allowlist_only, an allowed counterparty with the right salt is fine.
     #[test]
     fn allowed_counterparty_is_approved() {
-        let mut contract = setup();
-        contract.limits.allowlist_only = true;
-        set_caller_with_deposit(GUARDIAN, one_yocto());
-        contract.allow_counterparty(seller_hash());
+        let mut contract = seller_allowed();
         assert!(contract.is_allowed(seller_hash()));
-
-        assert_eq!(agent_spends(&mut contract, 3), Spend::Opened);
+        assert_eq!(
+            agent_spends_salted(&mut contract, 3, Some(SALT)),
+            Spend::Opened
+        );
     }
 
     /// Test 18: over the per-deal cap goes to the guardian; nothing counted.
@@ -777,7 +806,7 @@ mod tests {
         set_caller_at(COMPANY, NearToken::from_yoctonear(0), ONE_WEEK_NS);
         assert!(contract.get_spent_this_period().is_zero());
         assert!(matches!(
-            contract.open_deal(deal(5)),
+            contract.open_deal(deal(5), None),
             PromiseOrValue::Promise(_)
         ));
         assert_eq!(contract.get_spent_this_period(), near(5));
@@ -1002,7 +1031,7 @@ mod tests {
         let mut contract = setup();
         agent_spends(&mut contract, 3);
         set_caller_at(COMPANY, NearToken::from_yoctonear(0), ONE_WEEK_NS);
-        let _ = contract.open_deal(deal(2));
+        let _ = contract.open_deal(deal(2), None);
         assert_eq!(
             callback(&mut contract, 3, 0, Err(PromiseError::Failed)),
             SpendDecision::Failed
@@ -1054,6 +1083,22 @@ mod tests {
     fn stranger_cannot_act() {
         let mut contract = setup();
         let _ = act(&mut contract, "stranger.testnet", one_yocto(), "confirm");
+    }
+
+    /// Test 45: the wrong salt doesn't match the allowlist entry.
+    #[test]
+    #[should_panic(expected = "Counterparty is not allowed")]
+    fn wrong_salt_fails() {
+        let mut contract = seller_allowed();
+        agent_spends_salted(&mut contract, 3, Some([8; 32]));
+    }
+
+    /// Test 46: an allowed counterparty without the salt is refused.
+    #[test]
+    #[should_panic(expected = "Counterparty is not allowed")]
+    fn missing_salt_fails() {
+        let mut contract = seller_allowed();
+        agent_spends(&mut contract, 3);
     }
 
     proptest! {

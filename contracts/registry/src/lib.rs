@@ -4,14 +4,14 @@
 use bizzy_types::{Limits, Outcome};
 use near_sdk::json_types::{Base58CryptoHash, U64};
 use near_sdk::serde_json::json;
-use near_sdk::store::{IterableMap, LazyOption, LookupMap, LookupSet};
+use near_sdk::store::{IterableMap, LookupMap, LookupSet};
 use near_sdk::{
     AccountId, BorshStorageKey, CryptoHash, Gas, NearToken, PanicOnDefault, Promise, env, near,
     require,
 };
 
-/// Least NEAR to attach: ~1.7 for the policy code, the rest is the starting treasury.
-const MIN_DEPOSIT: NearToken = NearToken::from_near(3);
+/// Least NEAR to attach: covers the company's storage and its agent's first fees.
+const MIN_DEPOSIT: NearToken = NearToken::from_millinear(500);
 const GAS_FOR_INIT: Gas = Gas::from_tgas(30);
 const GAS_FOR_CALLBACK: Gas = Gas::from_tgas(15);
 /// Most companies one World ID human may verify (sybil resistance).
@@ -21,7 +21,6 @@ const MAX_COMPANIES_PER_HUMAN: u32 = 3;
 #[near]
 #[derive(BorshStorageKey)]
 enum StorageKey {
-    PolicyCode,
     Companies,
     Humans,
     SeenPairs,
@@ -81,7 +80,7 @@ pub struct Contract {
     /// Our backend: checks World ID and KYB off-chain, then attests.
     attester: AccountId,
     /// The policy wasm, loaded only when a company is created.
-    policy_code: LazyOption<Vec<u8>>,
+    policy_hash: Option<CryptoHash>,
     /// The directory, keyed by company account.
     companies: IterableMap<AccountId, Company>,
     /// Companies verified per World ID nullifier.
@@ -99,20 +98,21 @@ impl Contract {
             owner,
             escrow,
             attester,
-            policy_code: LazyOption::new(StorageKey::PolicyCode, None),
+            policy_hash: None,
             companies: IterableMap::new(StorageKey::Companies),
             humans: LookupMap::new(StorageKey::Humans),
             seen_pairs: LookupSet::new(StorageKey::SeenPairs),
         }
     }
 
-    /// Stores the policy wasm, sent as the raw call input. Owner only.
-    pub fn set_policy_code(&mut self) {
+    /// Sets the hash of the policy code, uploaded once as a global contract. Owner only.
+    /// New companies use that exact code; by hash, nobody can ever change it.
+    pub fn set_policy_hash(&mut self, hash: Base58CryptoHash) {
         require!(
             env::predecessor_account_id() == self.owner,
             "Only the owner can do this"
         );
-        self.policy_code.set(Some(env::input().expect("No code")));
+        self.policy_hash = Some(hash.into());
     }
 
     /// Creates `<name>.<registry>` with the policy on it and the caller as guardian.
@@ -125,13 +125,11 @@ impl Contract {
         referrer: Option<AccountId>,
         limits: Limits,
     ) -> Promise {
-        let code = self
-            .policy_code
-            .get()
-            .clone()
+        let code_hash = self
+            .policy_hash
             .unwrap_or_else(|| env::panic_str("No policy code yet"));
         let deposit = env::attached_deposit();
-        require!(deposit >= MIN_DEPOSIT, "Attach at least 3 NEAR");
+        require!(deposit >= MIN_DEPOSIT, "Attach at least 0.5 NEAR");
         require!(
             (2..=32).contains(&name.len())
                 && name
@@ -153,7 +151,7 @@ impl Contract {
         Promise::new(company.clone())
             .create_account()
             .transfer(deposit)
-            .deploy_contract(code)
+            .use_global_contract(code_hash)
             .function_call(
                 "new",
                 args.to_string().into_bytes(),
@@ -355,23 +353,23 @@ mod tests {
         );
     }
 
-    /// A registry with policy code uploaded.
+    /// A registry that knows the policy code's hash.
     fn ready() -> Contract {
         let mut contract = setup();
-        set_caller_with_input(OWNER, vec![1, 2, 3]);
-        contract.set_policy_code();
+        set_caller_with_input(OWNER, vec![]);
+        contract.set_policy_hash([1; 32].into());
         contract
     }
 
-    /// The guardian creates `name` with `deposit` NEAR.
+    /// The guardian creates `name` with `millinear` attached.
     fn create(
         contract: &mut Contract,
         name: &str,
-        deposit: u128,
+        millinear: u128,
         about: &str,
         referrer: Option<&str>,
     ) {
-        testing_env!(context(GUARDIAN, NearToken::from_near(deposit)));
+        testing_env!(context(GUARDIAN, NearToken::from_millinear(millinear)));
         let _ = contract.create_company(name.into(), about.into(), referrer.map(account), limits());
     }
 
@@ -438,26 +436,26 @@ mod tests {
         let contract = setup();
         assert_eq!(contract.owner, account(OWNER));
         assert_eq!(contract.escrow, account(ESCROW));
-        assert!(contract.policy_code.get().is_none());
+        assert!(contract.policy_hash.is_none());
         assert!(contract.get_companies(0, 10).is_empty());
     }
 
-    /// Test 2: the owner uploads the policy code.
+    /// Test 2: the owner sets the policy code hash.
     #[test]
-    fn owner_sets_policy_code() {
+    fn owner_sets_policy_hash() {
         let mut contract = setup();
-        set_caller_with_input(OWNER, vec![1, 2, 3]);
-        contract.set_policy_code();
-        assert_eq!(contract.policy_code.get(), &Some(vec![1, 2, 3]));
+        set_caller_with_input(OWNER, vec![]);
+        contract.set_policy_hash([1; 32].into());
+        assert_eq!(contract.policy_hash, Some([1; 32]));
     }
 
-    /// Test 3: a stranger can't upload code.
+    /// Test 3: a stranger can't set the hash.
     #[test]
     #[should_panic(expected = "Only the owner can do this")]
-    fn stranger_cannot_set_policy_code() {
+    fn stranger_cannot_set_policy_hash() {
         let mut contract = setup();
-        set_caller_with_input("stranger.testnet", vec![1, 2, 3]);
-        contract.set_policy_code();
+        set_caller_with_input("stranger.testnet", vec![]);
+        contract.set_policy_hash([1; 32].into());
     }
 
     /// Test 4: no code uploaded yet.
@@ -465,15 +463,15 @@ mod tests {
     #[should_panic(expected = "No policy code yet")]
     fn create_without_code_fails() {
         let mut contract = setup();
-        create(&mut contract, "acme", 3, "", None);
+        create(&mut contract, "acme", 500, "", None);
     }
 
-    /// Test 5: less than 3 NEAR attached.
+    /// Test 5: less than 0.5 NEAR attached.
     #[test]
-    #[should_panic(expected = "Attach at least 3 NEAR")]
+    #[should_panic(expected = "Attach at least 0.5 NEAR")]
     fn create_with_small_deposit_fails() {
         let mut contract = ready();
-        create(&mut contract, "acme", 2, "", None);
+        create(&mut contract, "acme", 400, "", None);
     }
 
     /// Test 6: every bad name is refused.
@@ -482,7 +480,7 @@ mod tests {
         let mut contract = ready();
         for name in ["a", "Acme", "ac.me", "ac_me", "-acme", &"a".repeat(33)] {
             let result = catch_unwind(AssertUnwindSafe(|| {
-                create(&mut contract, name, 3, "", None)
+                create(&mut contract, name, 500, "", None)
             }));
             assert!(result.is_err(), "{name} was accepted");
         }
@@ -494,7 +492,7 @@ mod tests {
     fn taken_name_fails() {
         let mut contract = ready();
         add_company(&mut contract, "acme");
-        create(&mut contract, "acme", 3, "", None);
+        create(&mut contract, "acme", 500, "", None);
     }
 
     /// Test 8: about longer than 280 chars.
@@ -502,7 +500,7 @@ mod tests {
     #[should_panic(expected = "About is too long")]
     fn long_about_fails() {
         let mut contract = ready();
-        create(&mut contract, "acme", 3, &"x".repeat(281), None);
+        create(&mut contract, "acme", 500, &"x".repeat(281), None);
     }
 
     /// Test 9: a referrer that isn't a company.
@@ -510,7 +508,7 @@ mod tests {
     #[should_panic(expected = "Unknown referrer")]
     fn unknown_referrer_fails() {
         let mut contract = ready();
-        create(&mut contract, "acme", 3, "", Some("nobody.testnet"));
+        create(&mut contract, "acme", 500, "", Some("nobody.testnet"));
     }
 
     /// Test 10: a valid call goes through (the Promise itself runs only on chain).
@@ -519,7 +517,7 @@ mod tests {
         let mut contract = ready();
         add_company(&mut contract, "beta");
         let beta = company_id("beta").to_string();
-        create(&mut contract, "acme", 3, "We sell chairs", Some(&beta));
+        create(&mut contract, "acme", 500, "We sell chairs", Some(&beta));
     }
 
     /// Test 11: the callback saves the record when creation worked.

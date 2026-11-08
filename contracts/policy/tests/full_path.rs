@@ -1,7 +1,9 @@
 //! Sandbox test: all three contracts wired together. Agents act only through their
 //! company's policy; the escrow holds and pays; the registry records reputation.
 
-use near_api::{AccountId, Contract, NearGas, NearToken, Signer, Tokens, signer};
+use near_api::{
+    AccountId, Contract, NearGas, NearToken, Signer, Tokens, signer, types::CryptoHash,
+};
 use near_sandbox::config::DEFAULT_GENESIS_ACCOUNT_PRIVATE_KEY;
 use near_sdk::serde_json::{Value, json};
 use std::sync::Arc;
@@ -32,7 +34,7 @@ async fn deal_runs_through_all_three_contracts() -> testresult::TestResult {
     for account in [&registry, &escrow, &buyer_guardian, &seller_guardian] {
         sandbox
             .create_account(account.clone())
-            .initial_balance(NearToken::from_near(20))
+            .initial_balance(NearToken::from_near(50))
             .send()
             .await?;
     }
@@ -59,7 +61,7 @@ async fn deal_runs_through_all_three_contracts() -> testresult::TestResult {
             .fetch_from(&net)
     };
 
-    // Deploy the registry and the escrow; upload the policy code.
+    // Deploy the registry and the escrow; upload the policy as a global contract.
     for (account, wasm, init) in [
         (
             &registry,
@@ -76,14 +78,23 @@ async fn deal_runs_through_all_three_contracts() -> testresult::TestResult {
             .await?
             .assert_success();
     }
-    Contract(registry.clone())
-        .call_function_raw("set_policy_code", policy_wasm)
-        .transaction()
-        .gas(NearGas::from_tgas(300))
+    let policy_hash = CryptoHash::hash(&policy_wasm).to_string();
+    Contract::deploy_global_contract_code(policy_wasm)
+        .as_hash()
         .with_signer(registry.clone(), root.clone())
         .send_to(&net)
         .await?
         .assert_success();
+    call(
+        &registry,
+        &registry,
+        &root,
+        "set_policy_hash",
+        json!({ "hash": policy_hash }),
+        ZERO,
+    )
+    .await?
+    .assert_success();
 
     // Each guardian creates a company and gives its agent a key.
     let limits = json!({ "per_deal_cap": NearToken::from_near(3), "period_cap": NearToken::from_near(10), "period_length_ns": "86400000000000", "allowlist_only": false });
@@ -227,6 +238,48 @@ async fn deal_runs_through_all_three_contracts() -> testresult::TestResult {
     .assert_success();
     let disputed = view(&escrow, "get_deal", json!({ "id": "1" })).await?.data;
     assert_eq!(disputed["status"], "Disputed");
+
+    // 7. Salted allowlist: the guardian lists the seller under a secret salt (only the
+    //    hash goes on chain); the agent can pay them with that salt and no other.
+    let mut only_listed = limits.clone();
+    only_listed["allowlist_only"] = json!(true);
+    let set_limits = json!({ "limits": only_listed });
+    call(
+        &buyer,
+        &buyer_guardian,
+        &root,
+        "set_limits",
+        set_limits,
+        YOCTO,
+    )
+    .await?
+    .assert_success();
+    let salt = [7u8; 32];
+    let entry = CryptoHash::hash(&[&salt[..], seller.as_str().as_bytes()].concat()).to_string();
+    let allow = json!({ "hash": entry });
+    call(
+        &buyer,
+        &buyer_guardian,
+        &root,
+        "allow_counterparty",
+        allow,
+        YOCTO,
+    )
+    .await?
+    .assert_success();
+    let salted = |salt: [u8; 32]| -> testresult::TestResult<Value> {
+        let mut args = deal(1, in_a_day.to_string());
+        args["salt"] = json!(CryptoHash::try_from(&salt[..])?.to_string());
+        Ok(args)
+    };
+    agent(&buyer, &buyer_agent, "open_deal", salted([8u8; 32])?)
+        .await?
+        .assert_failure();
+    let paid = agent(&buyer, &buyer_agent, "open_deal", salted(salt)?)
+        .await?
+        .assert_success()
+        .json::<Value>()?;
+    assert_eq!(paid, json!({ "Opened": { "deal_id": "2" } }));
 
     Ok(())
 }

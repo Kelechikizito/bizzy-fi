@@ -1,6 +1,9 @@
-//! Sandbox test: create_company really creates a keyless company running the policy.
+//! Sandbox test: create_company really creates a keyless company running the shared
+//! (global) policy code, and refunds when creation fails.
 
-use near_api::{Account, AccountId, Contract, NearGas, NearToken, Signer, Tokens};
+use near_api::{
+    Account, AccountId, Contract, NearGas, NearToken, Signer, Tokens, types::CryptoHash,
+};
 use near_sandbox::config::DEFAULT_GENESIS_ACCOUNT_PRIVATE_KEY;
 use near_sdk::serde_json::{Value, json};
 
@@ -21,12 +24,12 @@ async fn create_company_works_and_refunds() -> testresult::TestResult {
     for id in [&registry, &alice, &bob] {
         sandbox
             .create_account(id.clone())
-            .initial_balance(NearToken::from_near(10))
+            .initial_balance(NearToken::from_near(50))
             .send()
             .await?;
     }
 
-    // Deploy the registry (owned by itself) and upload the policy code.
+    // Deploy the registry (owned by itself).
     Contract::deploy(registry.clone())
         .use_code(registry_wasm)
         .with_init_call(
@@ -38,15 +41,27 @@ async fn create_company_works_and_refunds() -> testresult::TestResult {
         .await?
         .assert_success();
     let reg = Contract(registry.clone());
-    reg.call_function_raw("set_policy_code", policy_wasm)
-        .transaction()
-        .gas(NearGas::from_tgas(300))
+
+    // Upload the policy once as a global contract (by hash) and point the registry to it.
+    let policy_hash = CryptoHash::hash(&policy_wasm);
+    Contract::deploy_global_contract_code(policy_wasm)
+        .as_hash()
         .with_signer(registry.clone(), root.clone())
         .send_to(&net)
         .await?
         .assert_success();
+    reg.call_function(
+        "set_policy_hash",
+        json!({ "hash": policy_hash.to_string() }),
+    )
+    .transaction()
+    .with_signer(registry.clone(), root.clone())
+    .send_to(&net)
+    .await?
+    .assert_success();
 
-    // Creates `name` with 3 NEAR and 100 TGas; the policy rejects a per-deal cap above the period cap.
+    // Creates `name` with the 0.5 NEAR minimum and 100 TGas; the policy rejects a per-deal
+    // cap above the period cap.
     let create = |caller: &AccountId, name: &str, per_deal_cap: &str| {
         let limits = json!({ "per_deal_cap": per_deal_cap, "period_cap": "2", "period_length_ns": "1000", "allowlist_only": false });
         reg.call_function(
@@ -54,7 +69,7 @@ async fn create_company_works_and_refunds() -> testresult::TestResult {
             json!({ "name": name, "about": "We sell chairs", "referrer": null, "limits": limits }),
         )
         .transaction()
-        .deposit(NearToken::from_near(3))
+        .deposit(NearToken::from_millinear(500))
         .gas(NearGas::from_tgas(100))
         .with_signer(caller.clone(), root.clone())
         .send_to(&net)
@@ -72,6 +87,14 @@ async fn create_company_works_and_refunds() -> testresult::TestResult {
     assert_eq!(guardian, alice);
     let keys = Account(acme.clone()).list_keys().fetch_from(&net).await?;
     assert!(keys.data.is_empty(), "company account has keys");
+
+    // It points to the shared code instead of storing its own 200 KB copy.
+    let acme_account = Account(acme.clone()).view().fetch_from(&net).await?.data;
+    assert!(
+        acme_account.storage_usage < 2_000,
+        "company stores {} bytes",
+        acme_account.storage_usage
+    );
     assert_eq!(
         company(&reg, &acme, &net).await?["guardian"],
         alice.to_string()

@@ -35,7 +35,7 @@ Deadline: **2026-11-14 23:59 UTC**.
 - [x] 7: Escrow: full lifecycle
 - [x] 8: Escrow: milestones, auto-release, disputes
 - [x] 9: Wiring the three contracts together
-- [ ] 9b: Privacy and cost fixes: salted allowlist, shared policy code
+- [x] 9b: Privacy and cost fixes: salted allowlist, shared policy code
 - [ ] 10: Sandbox tests (Claude)
 - [ ] 11: Testnet deploy and demo seed (Claude)
 - [ ] 12: Backend base (Claude)
