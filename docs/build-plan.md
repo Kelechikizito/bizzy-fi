@@ -28,8 +28,8 @@ Deadline: **2026-11-14 23:59 UTC**.
 
 - [x] 1: Contracts workspace (Claude)
 - [x] 2: Policy, part 1: state, guardian, withdraw
-- [ ] 3: Policy, part 2: spending checks and approvals
-- [ ] 4: Policy, part 3: agent key and freeze
+- [x] 3: Policy, part 2: spending checks and approvals
+- [x] 4: Policy, part 3: agent key and freeze
 - [ ] 5: Registry, part 1: create a company
 - [ ] 6: Registry, part 2: attestations and reputation
 - [ ] 7: Escrow: full lifecycle

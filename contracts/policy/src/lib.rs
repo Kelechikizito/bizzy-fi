@@ -4,12 +4,18 @@
 use near_sdk::json_types::{Base58CryptoHash, U64};
 use near_sdk::store::{IterableMap, LookupSet};
 use near_sdk::{
-    AccountId, BorshStorageKey, CryptoHash, NearToken, PanicOnDefault, Promise, assert_one_yocto,
-    env, near, require,
+    AccountId, Allowance, BorshStorageKey, CryptoHash, NearToken, PanicOnDefault, Promise,
+    PublicKey, assert_one_yocto, env, near, require,
 };
 
 /// Most spends that may wait for the guardian at once.
 const MAX_PENDING: u32 = 20;
+/// The only methods the agent's key may call.
+const AGENT_METHODS: &str = "request_spend";
+/// Gas the agent's key may burn.
+const AGENT_GAS_ALLOWANCE: NearToken = NearToken::from_near(1);
+/// Wait after a freeze before unfreezing (1 hour, short enough to demo).
+const COOLDOWN_NS: u64 = 60 * 60 * 1_000_000_000;
 
 /// Storage prefixes, one per collection.
 #[near]
@@ -80,6 +86,10 @@ pub struct Contract {
     /// Spends waiting for the guardian.
     approvals: IterableMap<u64, PendingApproval>,
     next_approval_id: u64,
+    /// The agent's current key (None = no agent).
+    agent_key: Option<PublicKey>,
+    /// When unfreeze becomes allowed (ns).
+    unfreeze_at: u64,
 }
 
 // ─── 5. Public methods (#[near] impl) ──────────────────────────────────────
@@ -106,6 +116,8 @@ impl Contract {
             spent_this_period: NearToken::from_yoctonear(0),
             approvals: IterableMap::new(StorageKey::Approvals),
             next_approval_id: 0,
+            agent_key: None,
+            unfreeze_at: 0,
         }
     }
 
@@ -171,6 +183,52 @@ impl Contract {
         self.allowlist.remove(&CryptoHash::from(hash));
     }
 
+    /// Gives the agent a key that can only call AGENT_METHODS; replaces any old key. Guardian only.
+    #[payable]
+    pub fn set_agent_key(&mut self, public_key: PublicKey) -> Promise {
+        assert_one_yocto();
+        self.assert_guardian();
+        require!(self.status == Status::Active, "Agent is frozen");
+        let me = env::current_account_id();
+        let mut promise = Promise::new(me.clone());
+        if let Some(old) = self.agent_key.replace(public_key.clone()) {
+            promise = promise.delete_key(old);
+        }
+        promise.add_access_key_allowance(
+            public_key,
+            Allowance::limited(AGENT_GAS_ALLOWANCE).unwrap(),
+            me,
+            AGENT_METHODS,
+        )
+    }
+
+    /// Stops the agent at once: deletes its key and starts the cooldown. Guardian only.
+    #[payable]
+    pub fn freeze(&mut self) {
+        assert_one_yocto();
+        self.assert_guardian();
+        if let Some(key) = self.agent_key.take() {
+            Promise::new(env::current_account_id())
+                .delete_key(key)
+                .detach();
+        }
+        self.status = Status::Suspended;
+        self.unfreeze_at = env::block_timestamp().saturating_add(COOLDOWN_NS);
+    }
+
+    /// Lets the agent act again after the cooldown. Guardian only.
+    #[payable]
+    pub fn unfreeze(&mut self) {
+        assert_one_yocto();
+        self.assert_guardian();
+        require!(self.status == Status::Suspended, "Agent is not frozen");
+        require!(
+            env::block_timestamp() >= self.unfreeze_at,
+            "Cooldown not over"
+        );
+        self.status = Status::Active;
+    }
+
     /// Approves a pending spend, even past the caps. Guardian only.
     #[payable]
     pub fn approve(&mut self, id: U64) {
@@ -224,6 +282,16 @@ impl Contract {
     /// Whether the agent may act.
     pub fn get_status(&self) -> Status {
         self.status
+    }
+
+    /// The agent's current key.
+    pub fn get_agent_key(&self) -> Option<PublicKey> {
+        self.agent_key.clone()
+    }
+
+    /// When the guardian may unfreeze (ns).
+    pub fn get_unfreeze_at(&self) -> U64 {
+        U64(self.unfreeze_at)
     }
 
     /// The accountable human.
@@ -681,6 +749,106 @@ mod tests {
         assert_eq!(page[0].1.amount, near(6));
         assert_eq!(contract.get_pending_approvals(4, 10).len(), 1);
         assert!(contract.get_pending_approvals(5, 10).is_empty());
+    }
+
+    fn agent_key() -> PublicKey {
+        "ed25519:6E8sCci9badyRkXb3JoRpBj5p8C6Tw41ELDZoiihKEtp"
+            .parse()
+            .unwrap()
+    }
+
+    /// Test 27: the guardian gives the agent a key.
+    #[test]
+    fn guardian_sets_agent_key() {
+        let mut contract = setup();
+        set_caller_with_deposit(GUARDIAN, one_yocto());
+        let _ = contract.set_agent_key(agent_key());
+        assert_eq!(contract.get_agent_key(), Some(agent_key()));
+    }
+
+    /// Test 28: a stranger can't set the agent key.
+    #[test]
+    #[should_panic(expected = "Only the guardian can do this")]
+    fn stranger_cannot_set_agent_key() {
+        let mut contract = setup();
+        set_caller_with_deposit("stranger.testnet", one_yocto());
+        let _ = contract.set_agent_key(agent_key());
+    }
+
+    /// Test 29: no new key while the agent is frozen.
+    #[test]
+    #[should_panic(expected = "Agent is frozen")]
+    fn set_agent_key_while_frozen_fails() {
+        let mut contract = setup();
+        contract.status = Status::Suspended;
+        set_caller_with_deposit(GUARDIAN, one_yocto());
+        let _ = contract.set_agent_key(agent_key());
+    }
+
+    /// Freezes the policy as the guardian at time 0.
+    fn freeze(contract: &mut Contract) {
+        set_caller_with_deposit(GUARDIAN, one_yocto());
+        contract.freeze();
+    }
+
+    /// Test 30: freeze removes the key, suspends, and starts the cooldown.
+    #[test]
+    fn guardian_freezes() {
+        let mut contract = setup();
+        set_caller_with_deposit(GUARDIAN, one_yocto());
+        let _ = contract.set_agent_key(agent_key());
+        freeze(&mut contract);
+
+        assert_eq!(contract.get_status(), Status::Suspended);
+        assert_eq!(contract.get_agent_key(), None);
+        assert_eq!(contract.get_unfreeze_at(), U64(COOLDOWN_NS));
+    }
+
+    /// Test 31: a stranger can't freeze.
+    #[test]
+    #[should_panic(expected = "Only the guardian can do this")]
+    fn stranger_cannot_freeze() {
+        let mut contract = setup();
+        set_caller_with_deposit("stranger.testnet", one_yocto());
+        contract.freeze();
+    }
+
+    /// Test 32: a frozen agent can't spend.
+    #[test]
+    #[should_panic(expected = "Agent is not active")]
+    fn agent_cannot_spend_after_freeze() {
+        let mut contract = setup();
+        freeze(&mut contract);
+        agent_spends(&mut contract, 3);
+    }
+
+    /// Test 33: unfreeze before the cooldown fails.
+    #[test]
+    #[should_panic(expected = "Cooldown not over")]
+    fn unfreeze_before_cooldown_fails() {
+        let mut contract = setup();
+        freeze(&mut contract);
+        set_caller_at(GUARDIAN, one_yocto(), COOLDOWN_NS - 1);
+        contract.unfreeze();
+    }
+
+    /// Test 34: unfreeze after the cooldown makes the agent active.
+    #[test]
+    fn unfreeze_after_cooldown_works() {
+        let mut contract = setup();
+        freeze(&mut contract);
+        set_caller_at(GUARDIAN, one_yocto(), COOLDOWN_NS);
+        contract.unfreeze();
+        assert_eq!(contract.get_status(), Status::Active);
+    }
+
+    /// Test 35: unfreeze when not frozen fails.
+    #[test]
+    #[should_panic(expected = "Agent is not frozen")]
+    fn unfreeze_when_active_fails() {
+        let mut contract = setup();
+        set_caller_with_deposit(GUARDIAN, one_yocto());
+        contract.unfreeze();
     }
 
     proptest! {
