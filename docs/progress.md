@@ -1,4 +1,4 @@
-# Progress so far (checkpoints 1–8)
+# Progress so far (checkpoints 1–9b)
 
 ## The big picture
 
@@ -10,7 +10,13 @@ Bizzy-Fy has three smart contracts (programs that live on the NEAR blockchain):
 | **Registry** | `bizzyfy.testnet` | Creates companies and keeps their public record and reputation |
 | **Escrow** | `escrow.bizzyfy.testnet` | Holds a deal's money until the deal ends, then pays the right side |
 
-All three work **on their own** now. Checkpoint 9 connects them.
+They're now **connected** (checkpoint 9):
+
+```
+agent → POLICY (checks the rules) → ESCROW (holds the money) → REGISTRY (records reputation)
+```
+
+The agent never touches the escrow directly: every action goes through its company's policy, so the rules always apply.
 
 ## What each contract can do
 
@@ -23,16 +29,18 @@ All three work **on their own** now. Checkpoint 9 connects them.
   3. Is the amount under the per-deal limit?
   4. Is there room left in this week's limit?
 - If 1 or 2 fail → **refused**. If 3 or 4 fail → **sent to the guardian** to approve or reject.
-- **The allowlist** stores a fingerprint (hash) of each partner's name, not the name. Today that's weak (see Known limits); checkpoint 9b fixes it.
+- **The allowlist** stores a fingerprint of each partner's name mixed with a secret (a "salt") that only our app knows. Outsiders can't match it to names. A payment reveals only the partner being paid.
+- **Deals:** an approved spend opens a real escrow deal. If the escrow refuses, the money and the spending total go back.
+- **Deal actions:** the agent may accept, deliver, confirm or cancel. Only the guardian may dispute or agree a split.
 - **Agent key:** the guardian gives the agent a key that can call **only** "ask to spend". It can't send money or change rules.
 - **Freeze button:** one click deletes the agent's key. After a 1-hour cooldown the guardian can switch the agent back on.
 - **The company account has no master key.** Only the contract's rules can move its money. Not even we can.
 
 ### Registry (checkpoints 5–6)
 
-- **Create a company in one click:** makes `acme.bizzyfy.testnet`, puts the policy on it, and moves in the starting money (at least 3 NEAR). If anything fails, the money comes back.
-  - Why 3 NEAR: ~1.7 NEAR stays locked to pay for storing the policy code; the rest is the company's own wallet (not a fee) and pays the agent's transaction fees.
-  - Checkpoint 9b shares one copy of the policy code between all companies, so the minimum can drop.
+- **Create a company in one click:** makes `acme.bizzyfy.testnet`, points it to the policy code, and moves in the starting money (at least **0.5 NEAR**). If anything fails, the money comes back.
+  - All companies share **one copy** of the policy code (a NEAR "global contract"), so a company stores a few hundred bytes instead of 200 KB. That saves each new user about 2 NEAR.
+  - The shared code is fixed by its fingerprint: nobody, including us, can change the code holding a company's money.
 - **Company record:** guardian, a short public "about" line (fits an X post), who referred them.
 - **Verified facts** (written only by our backend): "a real human runs this" (World ID, at most 3 companies per person), "business verified", and the agreement's fingerprint.
   - World ID isn't checked on NEAR itself: our backend checks the proof with World's servers, then writes the result. You trust our backend for that step.
@@ -69,12 +77,12 @@ All three work **on their own** now. Checkpoint 9 connects them.
 
 | Kind of test | What it does | Count |
 |---|---|---|
-| **Unit tests** | Run the contract on your computer with a fake blockchain. Fast. | Policy 37 · Registry 26 · Escrow 32 |
+| **Unit tests** | Run the contract on your computer with a fake blockchain. Fast. | Policy 48 · Registry 26 · Escrow 35 |
 | **Property tests** | Throw random amounts at the spending checks to look for any way past the limits. | 2 |
-| **Sandbox tests** | Run the contracts on a real NEAR node on your computer, with real money moving. | 1 per contract |
+| **Sandbox tests** | Run the contracts on a real NEAR node on your computer, with real money moving. One runs all three together, start to finish. | 4 |
 | **Clippy** | Rust's code checker: flags risky or messy code. | Clean |
 
-We also broke the code **on purpose** (wrong payee, missing refund, extra agent permission) to prove the tests catch those bugs. They did.
+We also broke the code **on purpose** (wrong payee, missing refund, extra agent permission, agent allowed to dispute, unsalted allowlist) to prove the tests catch those bugs. They did.
 
 ## What's private, what isn't
 
@@ -90,7 +98,9 @@ In short: **what** was agreed is private; **that** acme paid beta 2 NEAR is publ
 
 ## Known limits (to say honestly in the README)
 
-- **The allowlist can be matched today.** The same name always gives the same fingerprint, and the registry lists every company name, so anyone can hash each name and compare. Checkpoint 9b adds a secret salt so they can't.
+- **Paying a partner reveals that partner** (its salt is sent with the payment). The deal shows who paid whom anyway.
+- **The allowlist salts live in our backend.** If they're lost, the guardian re-adds partners; nothing on chain breaks.
+- **Sharing the policy code burns about 20 NEAR once** (NEAR charges 10× for shared code). It pays off from about the 10th company.
 - Someone could tell that two companies were verified by the **same** person (the World ID scrambled ID is the same), though not who it is.
 - World ID is checked by our backend, not on chain.
 - Review, dispute and freeze windows are **1 hour** for the demo. In real life they'd be days.
@@ -99,8 +109,6 @@ In short: **what** was agreed is private; **that** acme paid beta 2 NEAR is publ
 
 | # | Checkpoint | Who |
 |---|---|---|
-| 9 | Connect the contracts: an approved spend opens a real escrow deal; the escrow updates reputation; freeze cancels open deals | you (Claude guides) |
-| 9b | Salted allowlist; one shared copy of the policy code (cheaper companies) | you (Claude guides) |
 | 10 | Full end-to-end tests | Claude |
 | 11 | Deploy to testnet + demo companies | Claude |
 | 12–15 | Backend, website, AI agents, deal pages | Claude |
