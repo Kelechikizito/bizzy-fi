@@ -33,7 +33,7 @@ Deadline: **2026-11-14 23:59 UTC**.
 - [x] 5: Registry, part 1: create a company
 - [x] 6: Registry, part 2: attestations and reputation
 - [x] 7: Escrow: full lifecycle
-- [ ] 8: Escrow: milestones, auto-release, disputes
+- [x] 8: Escrow: milestones, auto-release, disputes
 - [ ] 9: Wiring the three contracts together
 - [ ] 10: Sandbox tests (Claude)
 - [ ] 11: Testnet deploy and demo seed (Claude)
