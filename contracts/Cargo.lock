@@ -192,6 +192,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bizzy-types"
+version = "0.1.0"
+dependencies = [
+ "near-sdk",
+]
+
+[[package]]
 name = "blake2"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1091,6 +1098,7 @@ dependencies = [
 name = "escrow"
 version = "0.1.0"
 dependencies = [
+ "bizzy-types",
  "cargo-near-build",
  "near-api",
  "near-sandbox",
@@ -2717,6 +2725,7 @@ checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 name = "policy"
 version = "0.1.0"
 dependencies = [
+ "bizzy-types",
  "cargo-near-build",
  "near-api",
  "near-sandbox",
@@ -2990,6 +2999,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 name = "registry"
 version = "0.1.0"
 dependencies = [
+ "bizzy-types",
  "cargo-near-build",
  "near-api",
  "near-sandbox",
