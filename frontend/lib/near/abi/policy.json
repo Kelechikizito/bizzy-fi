@@ -1,0 +1,674 @@
+{
+  "schema_version": "0.4.0",
+  "metadata": {
+    "name": "policy",
+    "version": "0.1.0",
+    "build": {
+      "compiler": "rustc 1.96.0",
+      "builder": "cargo-near cargo-near-build 0.11.5"
+    },
+    "wasm_hash": "Ah9j86UuAV6fqyP1yzPVKSw8SWDGgaDpkTwiuxbvfvx6"
+  },
+  "body": {
+    "functions": [
+      {
+        "name": "allow_counterparty",
+        "doc": " Adds a counterparty hash to the allowlist. Guardian only.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "hash",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "approve",
+        "doc": " Approves a pending deal, even past the caps, and opens it. Guardian only.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Promise"
+          }
+        }
+      },
+      {
+        "name": "contract_source_metadata",
+        "kind": "view"
+      },
+      {
+        "name": "deal_action",
+        "doc": " Forwards a deal action to the escrow, which sees this company as the caller.\n The agent may use AGENT_DEAL_METHODS; the guardian (1 yocto) GUARDIAN_DEAL_METHODS.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "method",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "args",
+              "type_schema": true
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Promise"
+          }
+        }
+      },
+      {
+        "name": "freeze",
+        "doc": " Stops the agent at once: deletes its key and starts the cooldown. Guardian only.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ]
+      },
+      {
+        "name": "get_agent_key",
+        "doc": " The agent's current key.",
+        "kind": "view",
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      {
+        "name": "get_available_balance",
+        "doc": " How much the guardian could withdraw right now.",
+        "kind": "view",
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "get_guardian",
+        "doc": " The accountable human.",
+        "kind": "view",
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "get_limits",
+        "doc": " The current spending rules.",
+        "kind": "view",
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Limits"
+          }
+        }
+      },
+      {
+        "name": "get_pending_approvals",
+        "doc": " One page of spends waiting for the guardian.",
+        "kind": "view",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "from_index",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "limit",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/PendingApproval"
+                }
+              ],
+              "maxItems": 2,
+              "minItems": 2
+            }
+          }
+        }
+      },
+      {
+        "name": "get_spent_this_period",
+        "doc": " Spent so far this period (0 if the period has ended).",
+        "kind": "view",
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "get_status",
+        "doc": " Whether the agent may act.",
+        "kind": "view",
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Status"
+          }
+        }
+      },
+      {
+        "name": "get_unfreeze_at",
+        "doc": " When the guardian may unfreeze (ns).",
+        "kind": "view",
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "is_allowed",
+        "doc": " Whether a counterparty hash is on the allowlist.",
+        "kind": "view",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "hash",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "boolean"
+          }
+        }
+      },
+      {
+        "name": "new",
+        "doc": " Sets up the policy. Only the parent account (the registry) may call it.",
+        "kind": "call",
+        "modifiers": [
+          "init"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "guardian",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            },
+            {
+              "name": "escrow",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            },
+            {
+              "name": "limits",
+              "type_schema": {
+                "$ref": "#/definitions/Limits"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "on_deal_opened",
+        "doc": " Learns whether the escrow opened the deal; if not, takes the amount off this period.",
+        "kind": "call",
+        "modifiers": [
+          "private"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "amount",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "period_start",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "callbacks": [
+          {
+            "serialization_type": "json",
+            "type_schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/SpendDecision"
+          }
+        }
+      },
+      {
+        "name": "open_deal",
+        "doc": " The agent asks to open a deal. Within the caps it goes to the escrow;\n over a cap it waits for the guardian.\n `salt` is the allowlist entry's secret for this seller (needed only with `allowlist_only`).",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "deal",
+              "type_schema": {
+                "$ref": "#/definitions/DealRequest"
+              }
+            },
+            {
+              "name": "salt",
+              "type_schema": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/PromiseOrValueSpendDecision"
+          }
+        }
+      },
+      {
+        "name": "reject",
+        "doc": " Rejects a pending spend. Guardian only.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "remove_counterparty",
+        "doc": " Removes a counterparty hash from the allowlist. Guardian only.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "hash",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "set_agent_key",
+        "doc": " Gives the agent a key that can only call AGENT_METHODS; replaces any old key. Guardian only.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "public_key",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Promise"
+          }
+        }
+      },
+      {
+        "name": "set_limits",
+        "doc": " Changes the spending rules. Guardian only.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "limits",
+              "type_schema": {
+                "$ref": "#/definitions/Limits"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "unfreeze",
+        "doc": " Lets the agent act again after the cooldown. Guardian only.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ]
+      },
+      {
+        "name": "withdraw",
+        "doc": " Sends NEAR out of the company account. Guardian only.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "amount",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "to",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Promise"
+          }
+        }
+      }
+    ],
+    "root_schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "String",
+      "type": "string",
+      "definitions": {
+        "DealRequest": {
+          "description": "A deal the agent wants to open; its fields match the escrow's `create_deal`.",
+          "type": "object",
+          "required": [
+            "deliver_by",
+            "milestones",
+            "seller",
+            "terms_hash"
+          ],
+          "properties": {
+            "deliver_by": {
+              "type": "string"
+            },
+            "milestones": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "seller": {
+              "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+              "type": "string"
+            },
+            "terms_hash": {
+              "type": "string"
+            }
+          }
+        },
+        "Limits": {
+          "description": "A company's spending rules (stored by the policy, passed in by the registry).",
+          "type": "object",
+          "required": [
+            "allowlist_only",
+            "per_deal_cap",
+            "period_cap",
+            "period_length_ns"
+          ],
+          "properties": {
+            "allowlist_only": {
+              "description": "Only allowlisted counterparties may be paid.",
+              "type": "boolean"
+            },
+            "per_deal_cap": {
+              "description": "Most the agent may spend on one deal.",
+              "type": "string"
+            },
+            "period_cap": {
+              "description": "Most the agent may spend in one period.",
+              "type": "string"
+            },
+            "period_length_ns": {
+              "description": "Length of a spending period, in nanoseconds.",
+              "type": "string"
+            }
+          }
+        },
+        "PendingApproval": {
+          "description": "A deal over the caps, waiting for the guardian.",
+          "type": "object",
+          "required": [
+            "amount",
+            "created_at",
+            "deal"
+          ],
+          "properties": {
+            "amount": {
+              "type": "string"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "deal": {
+              "$ref": "#/definitions/DealRequest"
+            }
+          }
+        },
+        "Promise": true,
+        "PromiseOrValueSpendDecision": {
+          "description": "What happened to a deal the agent asked for.",
+          "oneOf": [
+            {
+              "description": "The escrow holds the money.",
+              "type": "object",
+              "required": [
+                "Opened"
+              ],
+              "properties": {
+                "Opened": {
+                  "type": "object",
+                  "required": [
+                    "deal_id"
+                  ],
+                  "properties": {
+                    "deal_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "Over a cap: waiting for the guardian.",
+              "type": "object",
+              "required": [
+                "NeedsApproval"
+              ],
+              "properties": {
+                "NeedsApproval": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "The escrow refused; the money and the spent total are back.",
+              "type": "string",
+              "enum": [
+                "Failed"
+              ]
+            }
+          ]
+        },
+        "SpendDecision": {
+          "description": "What happened to a deal the agent asked for.",
+          "oneOf": [
+            {
+              "description": "The escrow holds the money.",
+              "type": "object",
+              "required": [
+                "Opened"
+              ],
+              "properties": {
+                "Opened": {
+                  "type": "object",
+                  "required": [
+                    "deal_id"
+                  ],
+                  "properties": {
+                    "deal_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "Over a cap: waiting for the guardian.",
+              "type": "object",
+              "required": [
+                "NeedsApproval"
+              ],
+              "properties": {
+                "NeedsApproval": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "The escrow refused; the money and the spent total are back.",
+              "type": "string",
+              "enum": [
+                "Failed"
+              ]
+            }
+          ]
+        },
+        "Status": {
+          "description": "Whether the agent is allowed to act.",
+          "type": "string",
+          "enum": [
+            "Active",
+            "Suspended"
+          ]
+        }
+      }
+    }
+  }
+}

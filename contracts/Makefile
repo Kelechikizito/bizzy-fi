@@ -8,7 +8,7 @@ SIGN     := $(NET) $(KEYCHAIN) send
 POLICY   := target/near/policy/policy.wasm
 UPLOADED := target/near/policy.hash
 
-.PHONY: help build test accounts deploy upload-policy set-hash hash check
+.PHONY: help build test accounts deploy upload-policy set-hash abis hash check
 
 help: ## List the commands
 	@grep -E '^[a-z-]+:.*##' Makefile | sed 's/:.*## /\t/'
@@ -36,6 +36,10 @@ upload-policy: build ## Upload the shared policy code (BURNS about 20 NEAR)
 set-hash: ## Tell the registry to use the uploaded policy code
 	@test -f $(UPLOADED) || { echo 'Run make upload-policy first.'; exit 1; }
 	near contract call-function as-transaction $(REGISTRY) set_policy_hash json-args "{\"hash\":\"$$(cat $(UPLOADED))\"}" prepaid-gas '30 Tgas' attached-deposit '0 NEAR' sign-as $(REGISTRY) $(SIGN)
+
+abis: ## Copy the built ABIs to the frontend (run after any contract change)
+	@mkdir -p ../frontend/lib/near/abi
+	@for c in registry escrow policy; do cp target/near/$$c/$${c}_abi.json ../frontend/lib/near/abi/$$c.json; done
 
 hash: ## Print the hash of the uploaded policy code
 	@cat $(UPLOADED)

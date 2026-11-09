@@ -1,0 +1,440 @@
+{
+  "schema_version": "0.4.0",
+  "metadata": {
+    "name": "escrow",
+    "version": "0.1.0",
+    "build": {
+      "compiler": "rustc 1.96.0",
+      "builder": "cargo-near cargo-near-build 0.11.5"
+    },
+    "wasm_hash": "GQf9iw2YTLDEj3zg4CYU1dMuyi8peLwmSLKEQdDGrjrD"
+  },
+  "body": {
+    "functions": [
+      {
+        "name": "accept_deal",
+        "doc": " The seller accepts, proving it agreed to the same terms.",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "terms_hash",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "cancel",
+        "doc": " The buyer withdraws an offer the seller hasn't accepted yet.",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Promise"
+          }
+        }
+      },
+      {
+        "name": "confirm",
+        "doc": " The buyer confirms delivery; the seller is paid the next milestone.",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Promise"
+          }
+        }
+      },
+      {
+        "name": "contract_source_metadata",
+        "kind": "view"
+      },
+      {
+        "name": "create_deal",
+        "doc": " The buyer company locks the attached NEAR for a deal with `seller`.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "seller",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            },
+            {
+              "name": "terms_hash",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "deliver_by",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "milestones",
+              "type_schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "dispute",
+        "doc": " Freezes the deal until it's settled: the buyer before delivery, either side in the review window.",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "get_deal",
+        "doc": " One deal.",
+        "kind": "view",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Deal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "get_deals",
+        "doc": " One page of deals.",
+        "kind": "view",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "from_index",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "limit",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/Deal"
+                }
+              ],
+              "maxItems": 2,
+              "minItems": 2
+            }
+          }
+        }
+      },
+      {
+        "name": "mark_delivered",
+        "doc": " The seller says the next milestone was delivered.",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "new",
+        "kind": "call",
+        "modifiers": [
+          "init"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "registry",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "propose_split",
+        "doc": " Offers to give the seller `seller_share` of what's left. Pays out once both sides offer the same.",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "seller_share",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "refund_expired",
+        "doc": " Anyone may refund the buyer once an undelivered deal is past its deadline.",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Promise"
+          }
+        }
+      },
+      {
+        "name": "refund_on_timeout",
+        "doc": " Anyone may end an unsettled dispute: if delivered, a 50/50 split and both sides lose; if not, a refund.",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "release_due",
+        "doc": " Anyone may pay the next milestone once the buyer let the review window pass.",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Promise"
+          }
+        }
+      }
+    ],
+    "root_schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "String",
+      "type": "string",
+      "definitions": {
+        "Deal": {
+          "description": "One deal between two companies.",
+          "type": "object",
+          "required": [
+            "amount",
+            "buyer",
+            "deliver_by",
+            "disputed_after_delivery",
+            "milestones",
+            "paid",
+            "seller",
+            "status",
+            "terms_hash",
+            "updated_at"
+          ],
+          "properties": {
+            "amount": {
+              "type": "string"
+            },
+            "buyer": {
+              "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+              "type": "string"
+            },
+            "deliver_by": {
+              "description": "Delivery deadline (ns).",
+              "type": "string"
+            },
+            "disputed_after_delivery": {
+              "description": "The seller had marked delivery when the dispute began.",
+              "type": "boolean"
+            },
+            "milestones": {
+              "description": "Amounts paid in order; they add up to `amount`.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "paid": {
+              "description": "How many milestones are paid.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "seller": {
+              "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+              "type": "string"
+            },
+            "split_offer": {
+              "description": "Open split offer in a dispute: who offered, and the seller's share.",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": [
+                {
+                  "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "status": {
+              "$ref": "#/definitions/DealStatus"
+            },
+            "terms_hash": {
+              "description": "SHA-256 of the terms, which stay encrypted off-chain.",
+              "type": "string"
+            },
+            "updated_at": {
+              "description": "Last status change (ns).",
+              "type": "string"
+            }
+          }
+        },
+        "DealStatus": {
+          "description": "Where a deal is. Released, Refunded and Split are final.",
+          "type": "string",
+          "enum": [
+            "Proposed",
+            "Accepted",
+            "Delivered",
+            "Released",
+            "Refunded",
+            "Disputed",
+            "Split"
+          ]
+        },
+        "Promise": true
+      }
+    }
+  }
+}
