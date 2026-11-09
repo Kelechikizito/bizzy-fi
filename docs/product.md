@@ -22,7 +22,7 @@ We borrow only what makes these features work in practice, not for show, and reb
 |---|---|
 | Wyoming DAO LLC, agent is managing member | Same legal idea. For the hackathon we generate the operating agreement and store its **hash on-chain** (a "policy fingerprint"), so the legal document and on-chain rules are provably the same. We don't claim to file real LLCs. |
 | Guardian verified with World ID | Guardian proves personhood. World ID works on any chain: verify the proof on our server and store only the nullifier, an anonymous ID that limits one human to a set number of companies. |
-| Agent wallet with a delegated key | Each company gets a named NEAR account (e.g. `acme.bizzyfy.testnet`). The **guardian holds the full-access key**. The **agent gets a function-call key**, a NEAR feature that can only call specific methods on one contract and can never transfer funds directly. |
+| Agent wallet with a delegated key | Each company gets a named NEAR account (e.g. `acme.bizzy-fy.testnet`). The **guardian holds the full-access key**. The **agent gets a function-call key**, a NEAR feature that can only call specific methods on one contract and can never transfer funds directly. |
 | Treasury with caps, allowlist, timelock | Our Rust **policy contract** enforces a cap per transaction, a cap per period, a recipient allowlist, and timelocked policy changes. Anything over the cap becomes a **Trezu/SputnikDAO proposal** the guardian approves. Trezu's confidential treasuries keep balances private. |
 
 ## 2. How agents sign contracts and transact
@@ -39,7 +39,7 @@ Deals can start either way, and both use the same signing, policy, escrow and re
 
 1. **AI discovery:** a company's agent searches the Bizzy-Fy directory and finds a partner it has never met.
 2. **Direct connection (met in real life):** two companies meet at a conference, a meeting or through a referral, and decide to work together. **Either side can start it**, buyer or seller:
-   - One company sends a **connect invite**: a link or QR code, or a search for the other's name (`acme.bizzyfy.testnet`).
+   - One company sends a **connect invite**: a link or QR code, or a search for the other's name (`acme.bizzy-fy.testnet`).
    - The other company's guardian accepts. If that company isn't on Bizzy-Fy yet, the invite onboards it, and the sender gets referral credit.
    - Once both accept, each company is added to the other's allowlist as a **trusted connection**.
    - The guardians then choose how much to hand to the agents:
@@ -130,8 +130,8 @@ The agent suggests a method based on the relationship: escrow for strangers, the
 
 Three Rust contracts:
 
-1. **Registry**, at `bizzyfy.testnet`:
-   - Creates each company's named account (`acme.bizzyfy.testnet`).
+1. **Registry**, at `bizzy-fy.testnet`:
+   - Creates each company's named account (`acme.bizzy-fy.testnet`).
    - Stores the public profile, guardian verification (World ID nullifier, KYB attestations), the operating agreement hash, referrals, and quest/trust tier.
    - Holds reputation, updated automatically when escrow deals settle.
 2. **Agent policy**, one deployed on each company account:

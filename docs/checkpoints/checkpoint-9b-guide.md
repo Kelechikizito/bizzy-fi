@@ -18,7 +18,7 @@ A **salt** is a random value mixed in before hashing: `hash(salt + name)`. Witho
 **Why one salt per entry, not one per company:** the agent has to send the salt when it pays that partner (the contract must recompute the hash to check it). A transaction is public. If one salt covered the whole list, the first payment would leak it, and then every entry could be matched. With a salt per entry, a payment reveals only that one partner, and the deal already shows who's paying whom anyway.
 
 The app does the bookkeeping off-chain:
-1. Guardian adds beta → the app makes a random 32-byte salt, keeps it, and sends `allow_counterparty(sha256(salt + "beta.bizzyfy.testnet"))`.
+1. Guardian adds beta → the app makes a random 32-byte salt, keeps it, and sends `allow_counterparty(sha256(salt + "beta.bizzy-fy.testnet"))`.
 2. The agent pays beta → it sends that salt with `open_deal`.
 
 So `allow_counterparty`, `remove_counterparty` and `is_allowed` **don't change**: they already take a hash. Only the check in `open_deal` changes.

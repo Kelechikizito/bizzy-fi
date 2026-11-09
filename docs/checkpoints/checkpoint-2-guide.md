@@ -4,7 +4,7 @@
 
 ## Goal
 
-The policy contract lives on each company's account (e.g. `acme.bizzyfy.testnet`) and holds the company's money. In this checkpoint it learns:
+The policy contract lives on each company's account (e.g. `acme.bizzy-fy.testnet`) and holds the company's money. In this checkpoint it learns:
 - **who the guardian is** (the accountable human);
 - **the spending rules** (caps);
 - **that only the guardian** can change the rules or take money out.
@@ -53,11 +53,11 @@ The guardian will use a wallet. Wallets often add a **limited key** (a "function
 
 ### 5. Who may call `init`?
 
-Later (checkpoint 5), the **registry** (`bizzyfy.testnet`) creates `acme.bizzyfy.testnet`, puts this contract on it, and calls `init`, all in one transaction. So inside `init`:
+Later (checkpoint 5), the **registry** (`bizzy-fy.testnet`) creates `acme.bizzy-fy.testnet`, puts this contract on it, and calls `init`, all in one transaction. So inside `init`:
 - `env::predecessor_account_id()` is the registry;
-- `env::current_account_id()` is `acme.bizzyfy.testnet`.
+- `env::current_account_id()` is `acme.bizzy-fy.testnet`.
 
-**Rule to enforce:** only the **parent account** may call init. `acme.bizzyfy.testnet` must end with `.` + the caller's account ID. This stops a stranger setting themselves as guardian, and it means you don't need a `registry` argument: the caller *is* the registry.
+**Rule to enforce:** only the **parent account** may call init. `acme.bizzy-fy.testnet` must end with `.` + the caller's account ID. This stops a stranger setting themselves as guardian, and it means you don't need a `registry` argument: the caller *is* the registry.
 
 `#[derive(PanicOnDefault)]` plus `#[init]` already stop init running twice.
 
@@ -115,7 +115,7 @@ Put helpers in a separate `impl Contract { ... }` block **without** `#[near]`. M
 ## Your unit tests
 
 Write them in `#[cfg(test)] mod tests` at the bottom. Reuse the `get_context` idea from the auction sample, but set:
-- `.current_account_id("acme.bizzyfy.testnet")`
+- `.current_account_id("acme.bizzy-fy.testnet")`
 - `.predecessor_account_id(...)` (whoever is calling)
 - `.attached_deposit(NearToken::from_yoctonear(1))` for guardian methods
 - `.account_balance(NearToken::from_near(10))` so there's money to withdraw
@@ -124,7 +124,7 @@ Use `#[should_panic(expected = "...")]` for the failure cases (like `vm.expectRe
 
 | # | Test | Expect |
 |---|---|---|
-| 1 | `new` called by `bizzyfy.testnet` | works; views return what you passed; status `Active` |
+| 1 | `new` called by `bizzy-fy.testnet` | works; views return what you passed; status `Active` |
 | 2 | `new` called by `stranger.testnet` | panics (not the parent) |
 | 3 | `new` with `per_deal_cap` > `period_cap` | panics |
 | 4 | guardian `set_limits` with 1 yocto | limits updated |

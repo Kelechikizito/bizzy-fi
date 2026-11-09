@@ -316,9 +316,9 @@ mod tests {
     use near_sdk::{PromiseResult, RuntimeFeesConfig, VMContext, test_vm_config, testing_env};
     use std::panic::{AssertUnwindSafe, catch_unwind};
 
-    const REGISTRY: &str = "bizzyfy.testnet";
+    const REGISTRY: &str = "bizzy-fy.testnet";
     const OWNER: &str = "owner.testnet";
-    const ESCROW: &str = "escrow.bizzyfy.testnet";
+    const ESCROW: &str = "escrow.bizzy-fy.testnet";
     const ATTESTER: &str = "attester.testnet";
 
     fn account(id: &str) -> AccountId {

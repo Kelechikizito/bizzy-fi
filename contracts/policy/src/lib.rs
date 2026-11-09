@@ -485,12 +485,12 @@ mod tests {
     use near_sdk::testing_env;
     use proptest::prelude::*;
 
-    const COMPANY: &str = "acme.bizzyfy.testnet";
-    const REGISTRY: &str = "bizzyfy.testnet";
+    const COMPANY: &str = "acme.bizzy-fy.testnet";
+    const REGISTRY: &str = "bizzy-fy.testnet";
     const GUARDIAN: &str = "guardian.testnet";
-    const ESCROW: &str = "escrow.bizzyfy.testnet";
+    const ESCROW: &str = "escrow.bizzy-fy.testnet";
     const ONE_WEEK_NS: u64 = 7 * 24 * 60 * 60 * 1_000_000_000;
-    const SELLER: &str = "beta.bizzyfy.testnet";
+    const SELLER: &str = "beta.bizzy-fy.testnet";
 
     /// Turns a string into an AccountId.
     fn account(id: &str) -> AccountId {

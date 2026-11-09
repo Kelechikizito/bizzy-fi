@@ -39,13 +39,13 @@ Return the Promise from the method (like `withdraw` in the policy) or `.detach()
 
 ### 2. Who is a company? Check the account name
 
-Only the registry (`bizzyfy.testnet`) can create `*.bizzyfy.testnet` accounts. So "the caller is a registered company" is just:
+Only the registry (`bizzy-fy.testnet`) can create `*.bizzy-fy.testnet` accounts. So "the caller is a registered company" is just:
 
 ```rust
 env::predecessor_account_id().is_sub_account_of(&self.registry)
 ```
 
-No call to the registry needed. Check the seller the same way. (Our own `escrow.bizzyfy.testnet` also passes, but it never calls itself.)
+No call to the registry needed. Check the seller the same way. (Our own `escrow.bizzy-fy.testnet` also passes, but it never calls itself.)
 
 At checkpoint 9 the buyer's **policy contract** calls `create_deal`, so the caller is the company account. The seller's agent will reach the escrow the same way, through its policy. Either way, `predecessor` is the company.
 
@@ -125,7 +125,7 @@ fn assert_status(deal: &Deal, status: DealStatus)
 
 ## Your unit tests
 
-Delete the auction tests. Use companies `buyer.bizzyfy.testnet` and `seller.bizzyfy.testnet` with registry `bizzyfy.testnet`.
+Delete the auction tests. Use companies `buyer.bizzy-fy.testnet` and `seller.bizzy-fy.testnet` with registry `bizzy-fy.testnet`.
 
 | # | Test | Expect |
 |---|---|---|

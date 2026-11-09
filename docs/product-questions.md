@@ -113,7 +113,7 @@ See question 5.
 flowchart TD
     A[Visitor clicks referral link or Get started] --> B[Sign in: Google / social / passkey<br/>no wallet or seed phrase]
     B --> C[Guardian proves personhood<br/>World ID - store nullifier only]
-    C --> D[Create company account<br/>acme.bizzyfy.testnet<br/>guardian holds full-access key]
+    C --> D[Create company account<br/>acme.bizzy-fy.testnet<br/>guardian holds full-access key]
     D --> E[Optional KYB quest<br/>attest company is registered]
     E --> F[Set agent policy<br/>per-deal cap, monthly cap,<br/>allowed counterparties, approval threshold]
     F --> G[Generate operating agreement<br/>store its hash on-chain]

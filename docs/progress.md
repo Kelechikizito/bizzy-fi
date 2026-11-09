@@ -8,9 +8,9 @@ Bizzy-Fy has three smart contracts (programs that live on the NEAR blockchain):
 
 | Contract | Lives at | Job in one line |
 |---|---|---|
-| **Policy** | each company's account, e.g. `acme.bizzyfy.testnet` | Holds the company's money and the rules for its AI agent |
-| **Registry** | `bizzyfy.testnet` | Creates companies and keeps their public record and reputation |
-| **Escrow** | `escrow.bizzyfy.testnet` | Holds a deal's money until the deal ends, then pays the right side |
+| **Policy** | each company's account, e.g. `acme.bizzy-fy.testnet` | Holds the company's money and the rules for its AI agent |
+| **Registry** | `bizzy-fy.testnet` | Creates companies and keeps their public record and reputation |
+| **Escrow** | `escrow.bizzy-fy.testnet` | Holds a deal's money until the deal ends, then pays the right side |
 
 They're now **connected** (checkpoint 9):
 
@@ -40,7 +40,7 @@ The agent never touches the escrow directly: every action goes through its compa
 
 ### Registry (checkpoints 5–6)
 
-- **Create a company in one click:** makes `acme.bizzyfy.testnet`, points it to the policy code, and moves in the starting money (at least **0.5 NEAR**). If anything fails, the money comes back.
+- **Create a company in one click:** makes `acme.bizzy-fy.testnet`, points it to the policy code, and moves in the starting money (at least **0.5 NEAR**). If anything fails, the money comes back.
   - All companies share **one copy** of the policy code (a NEAR "global contract"), so a company stores a few hundred bytes instead of 200 KB. That saves each new user about 2 NEAR.
   - The shared code is fixed by its fingerprint: nobody, including us, can change the code holding a company's money.
 - **Company record:** guardian, a short public "about" line (fits an X post), who referred them.
@@ -66,8 +66,8 @@ The agent never touches the escrow directly: every action goes through its compa
 | Word | Meaning |
 |---|---|
 | **Rust** | The language NEAR contracts are written in. Strict: it catches many mistakes before the code runs. |
-| **Account** | A named address like `acme.bizzyfy.testnet`. Can hold money and one contract. |
-| **Sub-account** | `acme.bizzyfy.testnet` is under `bizzyfy.testnet`. Only the parent can create it. |
+| **Account** | A named address like `acme.bizzy-fy.testnet`. Can hold money and one contract. |
+| **Sub-account** | `acme.bizzy-fy.testnet` is under `bizzy-fy.testnet`. Only the parent can create it. |
 | **Access key** | Lets someone act for an account. A *limited* key can only call named methods. |
 | **Promise** | A note to the blockchain: "after this call, do X" (send money, create an account). It runs later. |
 | **Callback** | A follow-up call that tells you if a Promise worked, so you can save or undo. |

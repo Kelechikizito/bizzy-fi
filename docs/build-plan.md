@@ -94,13 +94,13 @@ Checked in the repo on 2026-11-07:
 Guardian (browser, HOT wallet)
    │ guardian calls: approve, freeze, withdraw, set policy
    ▼
-acme.bizzyfy.testnet ── policy contract (holds the company's funds)
+acme.bizzy-fy.testnet ── policy contract (holds the company's funds)
    ▲                         │ open_deal / accept_deal / pay_net
    │ agent's function-call   ▼
-   │ key (backend)       escrow.bizzyfy.testnet ── escrow + milestones + netting
+   │ key (backend)       escrow.bizzy-fy.testnet ── escrow + milestones + netting
    │                         │ record_outcome
 Agent runner ◀── NEAR AI      ▼
-(backend)        Cloud    bizzyfy.testnet ── registry: companies, attestations,
+(backend)        Cloud    bizzy-fy.testnet ── registry: companies, attestations,
                  (TEE)                       reputation, creates company accounts
 ```
 
@@ -185,10 +185,10 @@ Agent runner ◀── NEAR AI      ▼
 
 ## Checkpoint 5: Registry, part 1: create a company
 
-**Goal.** One call creates `acme.bizzyfy.testnet`, puts the policy contract on it and sets its guardian.
+**Goal.** One call creates `acme.bizzy-fy.testnet`, puts the policy contract on it and sets its guardian.
 
 **Understand first.**
-- **Sub-accounts:** only `bizzyfy.testnet` can create `*.bizzyfy.testnet`.
+- **Sub-accounts:** only `bizzy-fy.testnet` can create `*.bizzy-fy.testnet`.
 - **Storage staking:** a contract must hold NEAR to pay for the bytes it stores (about 1 NEAR per 100 KB). The caller attaches this deposit.
 - One Promise can chain actions: create account → transfer → deploy code → call init.
 

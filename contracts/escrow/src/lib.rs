@@ -367,9 +367,9 @@ mod tests {
     use near_sdk::test_utils::{VMContextBuilder, get_created_receipts};
     use near_sdk::testing_env;
 
-    const REGISTRY: &str = "bizzyfy.testnet";
-    const BUYER: &str = "buyer.bizzyfy.testnet";
-    const SELLER: &str = "seller.bizzyfy.testnet";
+    const REGISTRY: &str = "bizzy-fy.testnet";
+    const BUYER: &str = "buyer.bizzy-fy.testnet";
+    const SELLER: &str = "seller.bizzy-fy.testnet";
     const DEADLINE: u64 = 1_000;
 
     fn account(id: &str) -> AccountId {
@@ -379,7 +379,7 @@ mod tests {
     /// Fakes a call from `caller` with `deposit` at time `now` (like vm.prank + vm.warp).
     fn set_caller(caller: &str, deposit: NearToken, now: u64) {
         let context = VMContextBuilder::new()
-            .current_account_id(account("escrow.bizzyfy.testnet"))
+            .current_account_id(account("escrow.bizzy-fy.testnet"))
             .predecessor_account_id(account(caller))
             .attached_deposit(deposit)
             .block_timestamp(now)

@@ -60,7 +60,7 @@ Escrow replaces deposits and net-30 invoicing for real businesses.
 
 | Term | Meaning |
 |---|---|
-| **Company** | A real business registered on Bizzy-Fy, with a NEAR named account (`acme.bizzyfy.testnet`) |
+| **Company** | A real business registered on Bizzy-Fy, with a NEAR named account (`acme.bizzy-fy.testnet`) |
 | **Guardian** | The accountable human behind a company. Holds the full-access key, approves over-cap spending, can freeze the agent. Proven human via World ID. |
 | **Agent** | The AI acting for a company. Holds only a **function-call key** limited to the company's policy contract. |
 | **Function-call key** | A NEAR access key that can call only specific methods on one contract and can't transfer funds directly |
@@ -113,7 +113,7 @@ flowchart LR
     end
 
     subgraph NEAR [NEAR testnet]
-        REG[Registry<br/>bizzyfy.testnet]
+        REG[Registry<br/>bizzy-fy.testnet]
         POL[Agent policy<br/>per company]
         ESC[Escrow]
     end
@@ -152,15 +152,15 @@ flowchart LR
 
 | Contract | Account | Responsibilities |
 |---|---|---|
-| **Registry** | `bizzyfy.testnet` | Creates company sub-accounts; stores profiles, guardian attestations, operating-agreement hash, referrals, connect invites, quests/tier; holds reputation (written only by escrow) |
-| **Agent policy** | deployed on each `<company>.bizzyfy.testnet` | The only target of the agent's key; enforces caps, allowlist and timelock; routes over-cap requests to the guardian; freeze; bond and slashing |
-| **Escrow & settlement** | `escrow.bizzyfy.testnet` | Deal records (terms hash + signatures); lock, release and refund; milestones, holdbacks, deadlines, disputes; **netting** (running balances per connection, exposure limits, deposits, periodic net settlement, default handling); reports outcomes to the registry |
+| **Registry** | `bizzy-fy.testnet` | Creates company sub-accounts; stores profiles, guardian attestations, operating-agreement hash, referrals, connect invites, quests/tier; holds reputation (written only by escrow) |
+| **Agent policy** | deployed on each `<company>.bizzy-fy.testnet` | The only target of the agent's key; enforces caps, allowlist and timelock; routes over-cap requests to the guardian; freeze; bond and slashing |
+| **Escrow & settlement** | `escrow.bizzy-fy.testnet` | Deal records (terms hash + signatures); lock, release and refund; milestones, holdbacks, deadlines, disputes; **netting** (running balances per connection, exposure limits, deposits, periodic net settlement, default handling); reports outcomes to the registry |
 
 Built with `cargo near`. Write them with the `near-smart-contracts` skill and audit with `near-contract-audit`. ⚑ Folder layout: see §14.10.
 
 ### 6.3 Identity & accounts layer
 Bizzy-Fy doesn't use ENS. NEAR has **named accounts** natively.
-- **Company identity:** `acme.bizzyfy.testnet`, a sub-account created by the registry. The name itself is the profile handle.
+- **Company identity:** `acme.bizzy-fy.testnet`, a sub-account created by the registry. The name itself is the profile handle.
 - **Guardian login:** social, Google or passkey, with no seed phrase. ⚑ Provider: see §14.2.
 - **Proof of personhood:** World ID proof checked by the backend; only the nullifier is stored, as an attestation in the registry.
 - **KYB:** a provider sandbox or labeled mock, stored as an attestation (§14.8).
@@ -249,7 +249,7 @@ Full diagrams: `docs/product-questions.md` §4.
 ### 10.1 Company onboarding
 1. Sign in (social/passkey).
 2. Verify with World ID.
-3. Registry creates `acme.bizzyfy.testnet`, with the guardian holding the full-access key.
+3. Registry creates `acme.bizzy-fy.testnet`, with the guardian holding the full-access key.
 4. Publish the profile.
 5. Receive a referral link.
 

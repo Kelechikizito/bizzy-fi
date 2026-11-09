@@ -6,7 +6,7 @@
 
 One call, `create_company("acme", ...)`, with NEAR attached:
 
-1. creates the account `acme.bizzyfy.testnet`,
+1. creates the account `acme.bizzy-fy.testnet`,
 2. moves the deposit into it (the company's starting treasury),
 3. deploys the policy contract on it,
 4. calls the policy's `new` with the caller as guardian.
@@ -19,7 +19,7 @@ When it works, a **callback** saves the company record. When it fails, the callb
 
 ### 1. Sub-accounts
 
-Only `bizzyfy.testnet` can create `<name>.bizzyfy.testnet`, so the registry contract must live on `bizzyfy.testnet`. The policy's `new` already checks that its caller is the parent account (checkpoint 2), so only the registry can set up a company.
+Only `bizzy-fy.testnet` can create `<name>.bizzy-fy.testnet`, so the registry contract must live on `bizzy-fy.testnet`. The policy's `new` already checks that its caller is the parent account (checkpoint 2), so only the registry can set up a company.
 
 ### 2. Storage costs NEAR
 
@@ -137,7 +137,7 @@ pub struct Company {
 **Checks in `create_company`** (in this order, with these messages):
 - "No policy code yet": `policy_code` is set
 - "Attach at least 3 NEAR": deposit ≥ `MIN_DEPOSIT`
-- "Invalid name": 2–32 chars, only `a-z`, `0-9`, `-`. No dots, so nobody can make `x.acme.bizzyfy.testnet`
+- "Invalid name": 2–32 chars, only `a-z`, `0-9`, `-`. No dots, so nobody can make `x.acme.bizzy-fy.testnet`
 - "Name taken": not already in `companies`
 - "About is too long": `about.len() <= 280`
 - "Unknown referrer": if given, it must be in `companies`

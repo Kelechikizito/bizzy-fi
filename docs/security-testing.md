@@ -47,7 +47,7 @@ You do the same pass on your own first. It's a good habit, and it's how you get 
 | **Integration tests** | `near-sandbox` + `near-api` (real local NEAR node) | Calls between contracts, keys, sub-accounts, callbacks, gas | Claude, at checkpoints 4, 5, 7, 9, 16, 17; full path at 10 |
 | **Mutation testing** | `cargo-mutants` | Tests that pass even when the code is broken: it changes your code and checks a test fails | After checkpoint 9 and 17 |
 | **Coverage** | `cargo-llvm-cov` | Code no test ever runs | With mutation testing |
-| **Staging (testnet)** | Separate staging accounts (`staging-bizzyfy.testnet`) + smoke script | Real network behavior: real gas, real wallets, real timing | Checkpoint 11, and before every demo-account deploy |
+| **Staging (testnet)** | Separate staging accounts (`staging-bizzy-fy.testnet`) + smoke script | Real network behavior: real gas, real wallets, real timing | Checkpoint 11, and before every demo-account deploy |
 | **Fork testing** | Not needed for now | We don't depend on existing on-chain contracts in the must-have path. If we add SputnikDAO or Trezu, test against their real testnet contracts | Only if we add those integrations |
 
 **About fuzzing:** Foundry's fuzzer is built in. In Rust, `proptest` gives the same thing inside normal `cargo test`. (`cargo-fuzz` exists too, but it needs the nightly compiler and works on raw bytes; it's overkill for us.)

@@ -23,7 +23,7 @@ At this checkpoint an approved spend is only *recorded*. At checkpoint 9 it beco
 
 ### 1. How the agent calls its own contract
 
-At checkpoint 4 the agent gets a limited key **on the company account itself** (`acme.bizzyfy.testnet`). When the agent uses it, the call comes *from* the company account *to* the company account. So:
+At checkpoint 4 the agent gets a limited key **on the company account itself** (`acme.bizzy-fy.testnet`). When the agent uses it, the call comes *from* the company account *to* the company account. So:
 
 ```rust
 env::predecessor_account_id() == env::current_account_id()   // "the caller is the agent"
@@ -77,7 +77,7 @@ fn hash_account(account: &AccountId) -> CryptoHash {      // CryptoHash = [u8; 3
 
 - The guardian adds the **hash** (`allow_counterparty(hash)`), so the account name never appears in the transaction either. The app computes the hash.
 - In JSON, a hash travels as `Base58CryptoHash` (from `near_sdk::json_types`). Convert with `CryptoHash::from(h)`.
-- **Limit of this privacy:** names are guessable, so someone could hash `beta.bizzyfy.testnet` and check. It hides relationships from casual readers, not from a determined one. That's fine for the hackathon; say so in the README.
+- **Limit of this privacy:** names are guessable, so someone could hash `beta.bizzy-fy.testnet` and check. It hides relationships from casual readers, not from a determined one. That's fine for the hackathon; say so in the README.
 
 Not every company wants an allowlist (some find partners in the directory). Add **`allowlist_only: bool`** to `Limits`. When it's `false`, check 2 lets any counterparty through.
 
