@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node seed-demo.ts"
+  },
+  "dependencies": {
+    "@scure/base": "2.4.0",
+    "near-kit": "0.20.2"
+  }
+}
