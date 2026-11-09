@@ -6,12 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --conditions=react-server --test lib/server/server.test.ts"
   },
   "dependencies": {
+    "@libsql/client": "0.18.0",
+    "@scure/base": "2.4.0",
+    "@worldcoin/idkit-core": "4.6.0",
+    "near-kit": "0.20.2",
     "next": "16.4.5",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

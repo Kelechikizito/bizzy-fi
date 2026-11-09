@@ -15,3 +15,7 @@ export const POLICY_CODE_HASH = "Ah9j86UuAV6fqyP1yzPVKSw8SWDGgaDpkTwiuxbvfvx6";
 export const companyId = (name: string) => `${name}.${REGISTRY_ID}`;
 
 export const txUrl = (hash: string) => `${EXPLORER_URL}/transactions/${hash}`;
+
+/** How long the buyer can review a delivery, and how long a dispute can run (matches the escrow). */
+export const REVIEW_WINDOW_MS = 60 * 60 * 1000;
+export const DISPUTE_WINDOW_MS = 60 * 60 * 1000;

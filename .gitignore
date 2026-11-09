@@ -5,3 +5,5 @@ node_modules/
 target/
 CLAUDE.local.md
 .claude/settings.local.json
+*.db
+*.db-*
