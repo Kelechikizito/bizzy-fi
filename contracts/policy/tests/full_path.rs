@@ -227,3 +227,51 @@ async fn dispute_settled_by_guardians() -> testresult::TestResult {
     assert_eq!(w.reputation(&buyer).await?["disputes_lost"], 1);
     Ok(())
 }
+
+/// E. Nobody settles a dispute: after the window, anyone can refund the buyer.
+#[tokio::test]
+async fn unsettled_dispute_refunds_the_buyer() -> testresult::TestResult {
+    let w = World::start().await?;
+    let buyer = w.company("buyer", 12, None, limits(3, 10, false)).await?;
+    let seller = w.company("seller", 1, None, limits(3, 10, false)).await?;
+    returned(w.agent(&buyer, "open_deal", deal(&seller, &[2])).await)?;
+    let accept = action("accept_deal", 0, json!({ "terms_hash": TERMS }));
+    w.agent(&seller, "deal_action", accept)
+        .await?
+        .assert_success();
+    w.guardian(&buyer, "deal_action", action("dispute", 0, json!({})))
+        .await?
+        .assert_success();
+
+    // Too early: the refund is refused and the deal stays disputed.
+    let refund = json!({ "id": "0" });
+    let (escrow, caller) = (&w.escrow, &seller.guardian);
+    w.call(
+        escrow,
+        caller,
+        &w.root,
+        "refund_on_timeout",
+        refund.clone(),
+        ZERO,
+    )
+    .await?
+    .assert_failure();
+    assert_eq!(w.deal(0).await?["status"], "Disputed");
+
+    // After the window, even the seller's side can trigger it; the buyer gets it all.
+    w.sandbox.fast_forward(13_000).await?;
+    let seller_before = w.balance(&seller.account).await?;
+    let buyer_before = w.balance(&buyer.account).await?;
+    w.call(escrow, caller, &w.root, "refund_on_timeout", refund, ZERO)
+        .await?
+        .assert_success();
+    assert_eq!(w.deal(0).await?["status"], "Refunded");
+    assert_eq!(
+        w.balance(&buyer.account).await?,
+        buyer_before.saturating_add(near(2))
+    );
+    assert_eq!(w.balance(&seller.account).await?, seller_before);
+    assert_eq!(w.reputation(&buyer).await?["disputes_won"], 1);
+    assert_eq!(w.reputation(&seller).await?["disputes_lost"], 1);
+    Ok(())
+}

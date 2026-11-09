@@ -81,7 +81,7 @@ The agent never touches the escrow directly: every action goes through its compa
 |---|---|---|
 | **Unit tests** | Run the contract on your computer with a fake blockchain. Fast. | Policy 48 · Registry 26 · Escrow 35 |
 | **Property tests** | Throw random amounts at the spending checks to look for any way past the limits. | 2 |
-| **Sandbox tests** | Run the contracts on a real NEAR node on your computer, with real money moving. One runs all three together, start to finish. | 4 |
+| **Sandbox tests** | Run the contracts on a real NEAR node on your computer, with real money moving. Five run all three together, start to finish. | 8 |
 | **Clippy** | Rust's code checker: flags risky or messy code. | Clean |
 
 We also broke the code **on purpose** (wrong payee, missing refund, extra agent permission, agent allowed to dispute, unsalted allowlist) to prove the tests catch those bugs. They did.
@@ -112,7 +112,6 @@ In short: **what** was agreed is private; **that** acme paid beta 2 NEAR is publ
 
 | # | Checkpoint | Who |
 |---|---|---|
-| 10 | Full end-to-end tests | Claude |
 | 11 | Deploy to testnet + demo companies | Claude |
 | 12–15 | Backend, website, AI agents, deal pages | Claude |
 | 16–17 | Direct connections, netting | you + Claude |
