@@ -1,7 +1,7 @@
 //! Bizzy-Fy policy contract: holds a company's funds and enforces its guardian's rules.
 
 // ─── 1. Imports ────────────────────────────────────────────────────────────
-use bizzy_types::{DealRequest, Limits, ext_escrow};
+use bizzy_types::{DealRequest, Limits, MAX_MILESTONES, ext_escrow};
 use near_sdk::json_types::{Base58CryptoHash, U64};
 use near_sdk::serde_json::Value;
 use near_sdk::store::{IterableMap, LookupSet};
@@ -137,6 +137,10 @@ impl Contract {
         salt: Option<Base58CryptoHash>,
     ) -> PromiseOrValue<SpendDecision> {
         self.assert_agent();
+        require!(
+            deal.milestones.len() <= MAX_MILESTONES,
+            "1 to 10 milestones"
+        );
         let amount = deal
             .milestones
             .iter()
@@ -628,6 +632,17 @@ mod tests {
         assert_eq!(contract.escrow, account(ESCROW));
         assert_eq!(contract.limits, limits(5, 20));
         assert_eq!(contract.status, Status::Active);
+    }
+
+    /// Test 1b: an oversized request can't wait in the approval queue.
+    #[test]
+    #[should_panic(expected = "1 to 10 milestones")]
+    fn too_many_milestones_refused() {
+        let mut contract = setup();
+        let mut big = deal(1);
+        big.milestones = vec![near(1); MAX_MILESTONES + 1];
+        set_caller(COMPANY);
+        let _ = contract.open_deal(big, None);
     }
 
     /// Test 2: a stranger can't make themselves guardian.

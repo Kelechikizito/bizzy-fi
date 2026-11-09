@@ -4,6 +4,9 @@
 use near_sdk::json_types::{Base58CryptoHash, U64};
 use near_sdk::{AccountId, NearToken, ext_contract, near};
 
+/// Most payment stages one deal may have.
+pub const MAX_MILESTONES: usize = 10;
+
 /// A company's spending rules (stored by the policy, passed in by the registry).
 #[near(serializers = [json, borsh])]
 #[derive(Clone, PartialEq, Debug)]

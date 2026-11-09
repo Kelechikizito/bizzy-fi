@@ -8,6 +8,7 @@ use common::*;
 use near_api::types::transaction::actions::{Action, FunctionCallAction};
 use near_api::{Account, NearGas, NearToken, Transaction, types::CryptoHash};
 use near_sdk::serde_json::json;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// A. A 2-milestone deal runs from start to finish through both agents.
 #[tokio::test]
@@ -228,41 +229,57 @@ async fn dispute_settled_by_guardians() -> testresult::TestResult {
     Ok(())
 }
 
-/// E. Nobody settles a dispute: after the window, anyone can refund the buyer.
+/// E. Nobody settles: undelivered disputes refund, delivered ones split, no-shows lose score.
 #[tokio::test]
-async fn unsettled_dispute_refunds_the_buyer() -> testresult::TestResult {
+async fn unsettled_deals_end_by_the_rules() -> testresult::TestResult {
     let w = World::start().await?;
     let buyer = w.company("buyer", 12, None, limits(3, 10, false)).await?;
     let seller = w.company("seller", 1, None, limits(3, 10, false)).await?;
-    returned(w.agent(&buyer, "open_deal", deal(&seller, &[2])).await)?;
-    let accept = action("accept_deal", 0, json!({ "terms_hash": TERMS }));
-    w.agent(&seller, "deal_action", accept)
-        .await?
-        .assert_success();
-    w.guardian(&buyer, "deal_action", action("dispute", 0, json!({})))
-        .await?
-        .assert_success();
 
-    // Too early: the refund is refused and the deal stays disputed.
-    let refund = json!({ "id": "0" });
-    let (escrow, caller) = (&w.escrow, &seller.guardian);
-    w.call(
-        escrow,
-        caller,
-        &w.root,
-        "refund_on_timeout",
-        refund.clone(),
-        ZERO,
+    // Deal 2 is due in a minute; deals 0 and 1 are due in a day.
+    let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
+    let mut due_soon = deal(&seller, &[2]);
+    due_soon["deal"]["deliver_by"] = json!((now + 60_000_000_000).to_string());
+    for args in [deal(&seller, &[2]), deal(&seller, &[2]), due_soon] {
+        returned(w.agent(&buyer, "open_deal", args).await)?;
+    }
+    for id in 0..3 {
+        let accept = action("accept_deal", id, json!({ "terms_hash": TERMS }));
+        w.agent(&seller, "deal_action", accept)
+            .await?
+            .assert_success();
+    }
+    w.agent(
+        &seller,
+        "deal_action",
+        action("mark_delivered", 1, json!({})),
     )
     .await?
-    .assert_failure();
-    assert_eq!(w.deal(0).await?["status"], "Disputed");
+    .assert_success();
 
-    // After the window, even the seller's side can trigger it; the buyer gets it all.
+    // The seller can't dispute before delivering; the buyer can.
+    w.guardian(&seller, "deal_action", action("dispute", 0, json!({})))
+        .await?
+        .assert_failure();
+    for id in 0..2 {
+        w.guardian(&buyer, "deal_action", action("dispute", id, json!({})))
+            .await?
+            .assert_success();
+    }
+
+    // Too early: the timeout is refused and the deal stays disputed.
+    let (escrow, caller) = (&w.escrow, &seller.guardian);
+    let id = |n: &str| json!({ "id": n });
+    w.call(escrow, caller, &w.root, "refund_on_timeout", id("0"), ZERO)
+        .await?
+        .assert_failure();
+    assert_eq!(w.deal(0).await?["status"], "Disputed");
     w.sandbox.fast_forward(13_000).await?;
+
+    // Not delivered: the buyer gets it all and nobody's score moves.
     let seller_before = w.balance(&seller.account).await?;
     let buyer_before = w.balance(&buyer.account).await?;
-    w.call(escrow, caller, &w.root, "refund_on_timeout", refund, ZERO)
+    w.call(escrow, caller, &w.root, "refund_on_timeout", id("0"), ZERO)
         .await?
         .assert_success();
     assert_eq!(w.deal(0).await?["status"], "Refunded");
@@ -271,7 +288,31 @@ async fn unsettled_dispute_refunds_the_buyer() -> testresult::TestResult {
         buyer_before.saturating_add(near(2))
     );
     assert_eq!(w.balance(&seller.account).await?, seller_before);
-    assert_eq!(w.reputation(&buyer).await?["disputes_won"], 1);
+    assert_eq!(w.reputation(&seller).await?["disputes_lost"], 0);
+
+    // Delivered: half each, and both sides lose.
+    let buyer_before = w.balance(&buyer.account).await?;
+    w.call(escrow, caller, &w.root, "refund_on_timeout", id("1"), ZERO)
+        .await?
+        .assert_success();
+    assert_eq!(w.deal(1).await?["status"], "Split");
+    assert_eq!(
+        w.balance(&buyer.account).await?,
+        buyer_before.saturating_add(near(1))
+    );
+    assert_eq!(
+        w.balance(&seller.account).await?,
+        seller_before.saturating_add(near(1))
+    );
+    assert_eq!(w.reputation(&buyer).await?["disputes_lost"], 1);
     assert_eq!(w.reputation(&seller).await?["disputes_lost"], 1);
+
+    // Accepted, never delivered, past the deadline: refunded and the seller is marked down.
+    w.call(escrow, caller, &w.root, "refund_expired", id("2"), ZERO)
+        .await?
+        .assert_success();
+    assert_eq!(w.deal(2).await?["status"], "Refunded");
+    assert_eq!(w.reputation(&seller).await?["disputes_lost"], 2);
+    assert_eq!(w.reputation(&buyer).await?["disputes_won"], 1);
     Ok(())
 }

@@ -1,7 +1,7 @@
 //! Bizzy-Fy escrow: holds a deal's NEAR until it is released to the seller or refunded.
 
 // ─── 1. Imports ────────────────────────────────────────────────────────────
-use bizzy_types::{Outcome, ext_registry};
+use bizzy_types::{MAX_MILESTONES, Outcome, ext_registry};
 use near_sdk::json_types::{Base58CryptoHash, U64};
 use near_sdk::store::IterableMap;
 use near_sdk::{
@@ -10,7 +10,8 @@ use near_sdk::{
 
 /// Smallest deal: each deal costs storage, so tiny spam deals are refused.
 const MIN_DEAL: NearToken = NearToken::from_millinear(100);
-const MAX_MILESTONES: usize = 10;
+/// Spare NEAR needed for one more deal (1 KB of storage).
+const DEAL_STORAGE: NearToken = NearToken::from_millinear(10);
 /// Gas for each reputation report to the registry.
 const GAS_FOR_REPORT: Gas = Gas::from_tgas(10);
 /// After a delivery, the buyer has this long to confirm or dispute (1 hour: short enough to demo).
@@ -59,6 +60,8 @@ pub struct Deal {
     pub updated_at: U64,
     /// Open split offer in a dispute: who offered, and the seller's share.
     pub split_offer: Option<(AccountId, NearToken)>,
+    /// The seller had marked delivery when the dispute began.
+    pub disputed_after_delivery: bool,
 }
 
 // ─── 3. Contract state ─────────────────────────────────────────────────────
@@ -69,6 +72,8 @@ pub struct Contract {
     registry: AccountId,
     deals: IterableMap<u64, Deal>,
     next_deal_id: u64,
+    /// NEAR owed to open deals; storage may never eat into it.
+    locked: NearToken,
 }
 
 // ─── 4. Public methods ─────────────────────────────────────────────────────
@@ -80,6 +85,7 @@ impl Contract {
             registry,
             deals: IterableMap::new(StorageKey::Deals),
             next_deal_id: 0,
+            locked: NearToken::from_near(0),
         }
     }
 
@@ -120,6 +126,16 @@ impl Contract {
             deliver_by.0 > env::block_timestamp(),
             "Deadline must be in the future"
         );
+        let locked = self.locked.saturating_add(amount);
+        let storage = env::storage_byte_cost().saturating_mul(env::storage_usage() as u128);
+        require!(
+            env::account_balance()
+                .saturating_sub(locked)
+                .saturating_sub(storage)
+                >= DEAL_STORAGE,
+            "Escrow needs more NEAR for storage"
+        );
+        self.locked = locked;
 
         let id = self.next_deal_id;
         self.next_deal_id += 1;
@@ -134,6 +150,7 @@ impl Contract {
             paid: 0,
             updated_at: U64(env::block_timestamp()),
             split_offer: None,
+            disputed_after_delivery: false,
         };
         self.deals.insert(id, deal);
         U64(id)
@@ -141,7 +158,7 @@ impl Contract {
 
     /// The seller accepts, proving it agreed to the same terms.
     pub fn accept_deal(&mut self, id: U64, terms_hash: Base58CryptoHash) {
-        let deal = self.deal_mut(id);
+        let deal = Self::deal_mut(&mut self.deals, id);
         Self::assert_caller(&deal.seller, "Only the seller can do this");
         Self::assert_status(deal, DealStatus::Proposed);
         require!(deal.terms_hash == terms_hash, "Terms don't match");
@@ -150,7 +167,7 @@ impl Contract {
 
     /// The seller says the next milestone was delivered.
     pub fn mark_delivered(&mut self, id: U64) {
-        let deal = self.deal_mut(id);
+        let deal = Self::deal_mut(&mut self.deals, id);
         Self::assert_caller(&deal.seller, "Only the seller can do this");
         Self::assert_status(deal, DealStatus::Accepted);
         deal.status = DealStatus::Delivered;
@@ -159,60 +176,76 @@ impl Contract {
 
     /// The buyer confirms delivery; the seller is paid the next milestone.
     pub fn confirm(&mut self, id: U64) -> Promise {
-        let registry = self.registry.clone();
-        let deal = self.deal_mut(id);
+        let deal = Self::deal_mut(&mut self.deals, id);
         Self::assert_caller(&deal.buyer, "Only the buyer can do this");
         Self::assert_status(deal, DealStatus::Delivered);
-        Self::release_next(&registry, deal)
+        Self::release_next(&self.registry, &mut self.locked, deal)
     }
 
     /// Anyone may pay the next milestone once the buyer let the review window pass.
     pub fn release_due(&mut self, id: U64) -> Promise {
-        let registry = self.registry.clone();
-        let deal = self.deal_mut(id);
+        let deal = Self::deal_mut(&mut self.deals, id);
         Self::assert_status(deal, DealStatus::Delivered);
         require!(
             env::block_timestamp() >= deal.updated_at.0.saturating_add(REVIEW_WINDOW_NS),
             "Review window not over"
         );
-        Self::release_next(&registry, deal)
+        Self::release_next(&self.registry, &mut self.locked, deal)
     }
 
     /// The buyer withdraws an offer the seller hasn't accepted yet.
     pub fn cancel(&mut self, id: U64) -> Promise {
-        let deal = self.deal_mut(id);
+        let deal = Self::deal_mut(&mut self.deals, id);
         Self::assert_caller(&deal.buyer, "Only the buyer can do this");
         Self::assert_status(deal, DealStatus::Proposed);
-        Self::refund(deal)
+        Self::refund(&mut self.locked, deal)
     }
 
     /// Anyone may refund the buyer once an undelivered deal is past its deadline.
     pub fn refund_expired(&mut self, id: U64) -> Promise {
-        let deal = self.deal_mut(id);
+        let deal = Self::deal_mut(&mut self.deals, id);
         require!(
             matches!(deal.status, DealStatus::Proposed | DealStatus::Accepted),
             "Wrong status"
         );
         require!(env::block_timestamp() > deal.deliver_by.0, "Not expired");
-        Self::refund(deal)
+        // The seller took the deal and didn't finish it.
+        if deal.status == DealStatus::Accepted {
+            Self::report(
+                &self.registry,
+                deal,
+                Outcome::DisputeLost,
+                Outcome::DisputeWon,
+            );
+        }
+        Self::refund(&mut self.locked, deal)
     }
 
-    /// Either side freezes the deal; release and refunds stop until it's settled.
+    /// Freezes the deal until it's settled: the buyer before delivery, either side in the review window.
     pub fn dispute(&mut self, id: U64) {
-        let deal = self.deal_mut(id);
+        let deal = Self::deal_mut(&mut self.deals, id);
         Self::assert_party(deal);
+        let delivered = deal.status == DealStatus::Delivered;
         require!(
-            matches!(deal.status, DealStatus::Accepted | DealStatus::Delivered),
+            delivered || deal.status == DealStatus::Accepted,
             "Wrong status"
         );
+        if delivered {
+            require!(
+                env::block_timestamp() < deal.updated_at.0.saturating_add(REVIEW_WINDOW_NS),
+                "Review window is over"
+            );
+        } else {
+            Self::assert_caller(&deal.buyer, "Only the buyer can dispute before delivery");
+        }
+        deal.disputed_after_delivery = delivered;
         deal.status = DealStatus::Disputed;
         deal.updated_at = U64(env::block_timestamp());
     }
 
     /// Offers to give the seller `seller_share` of what's left. Pays out once both sides offer the same.
     pub fn propose_split(&mut self, id: U64, seller_share: NearToken) {
-        let registry = self.registry.clone();
-        let deal = self.deal_mut(id);
+        let deal = Self::deal_mut(&mut self.deals, id);
         Self::assert_party(deal);
         Self::assert_status(deal, DealStatus::Disputed);
         let remaining = Self::remaining(deal);
@@ -223,39 +256,39 @@ impl Contract {
             && *by != caller
             && *share == seller_share
         {
-            deal.status = DealStatus::Split;
-            deal.updated_at = U64(env::block_timestamp());
-            for (to, amount) in [
-                (&deal.seller, seller_share),
-                (&deal.buyer, remaining.saturating_sub(seller_share)),
-            ] {
-                if !amount.is_zero() {
-                    Promise::new(to.clone()).transfer(amount).detach();
-                }
-            }
+            Self::pay_split(&mut self.locked, deal, seller_share);
             // Whoever got at least half of what was left counts as the winner.
             let (seller, buyer) = if seller_share.saturating_mul(2) >= remaining {
                 (Outcome::DisputeWon, Outcome::DisputeLost)
             } else {
                 (Outcome::DisputeLost, Outcome::DisputeWon)
             };
-            Self::report(&registry, deal, seller, buyer);
+            Self::report(&self.registry, deal, seller, buyer);
         } else {
             deal.split_offer = Some((caller, seller_share));
         }
     }
 
-    /// Anyone may refund the buyer if a dispute wasn't settled in time.
-    pub fn refund_on_timeout(&mut self, id: U64) -> Promise {
-        let registry = self.registry.clone();
-        let deal = self.deal_mut(id);
+    /// Anyone may end an unsettled dispute: if delivered, a 50/50 split and both sides lose; if not, a refund.
+    pub fn refund_on_timeout(&mut self, id: U64) {
+        let deal = Self::deal_mut(&mut self.deals, id);
         Self::assert_status(deal, DealStatus::Disputed);
         require!(
             env::block_timestamp() >= deal.updated_at.0.saturating_add(DISPUTE_WINDOW_NS),
             "Dispute window not over"
         );
-        Self::report(&registry, deal, Outcome::DisputeLost, Outcome::DisputeWon);
-        Self::refund(deal)
+        if deal.disputed_after_delivery {
+            let half = Self::remaining(deal).saturating_div(2);
+            Self::pay_split(&mut self.locked, deal, half);
+            Self::report(
+                &self.registry,
+                deal,
+                Outcome::DisputeLost,
+                Outcome::DisputeLost,
+            );
+        } else {
+            Self::refund(&mut self.locked, deal).detach();
+        }
     }
 
     // ── Views ──
@@ -279,8 +312,8 @@ impl Contract {
 // ─── 5. Private helpers ────────────────────────────────────────────────────
 impl Contract {
     /// The deal, or panics "No such deal".
-    fn deal_mut(&mut self, id: U64) -> &mut Deal {
-        self.deals
+    fn deal_mut(deals: &mut IterableMap<u64, Deal>, id: U64) -> &mut Deal {
+        deals
             .get_mut(&id.0)
             .unwrap_or_else(|| env::panic_str("No such deal"))
     }
@@ -292,8 +325,9 @@ impl Contract {
 
     /// Pays the next milestone. Released if it was the last, else back to Accepted.
     /// When the last milestone is paid, reports the deal to the registry.
-    fn release_next(registry: &AccountId, deal: &mut Deal) -> Promise {
+    fn release_next(registry: &AccountId, locked: &mut NearToken, deal: &mut Deal) -> Promise {
         let amount = deal.milestones[deal.paid as usize];
+        *locked = locked.saturating_sub(amount);
         let delivered_at = deal.updated_at.0;
         deal.paid += 1;
         deal.status = if deal.paid as usize == deal.milestones.len() {
@@ -328,10 +362,28 @@ impl Contract {
     }
 
     /// Marks the deal Refunded and sends what's left back to the buyer.
-    fn refund(deal: &mut Deal) -> Promise {
+    fn refund(locked: &mut NearToken, deal: &mut Deal) -> Promise {
+        let amount = Self::remaining(deal);
+        *locked = locked.saturating_sub(amount);
         deal.status = DealStatus::Refunded;
         deal.updated_at = U64(env::block_timestamp());
-        Promise::new(deal.buyer.clone()).transfer(Self::remaining(deal))
+        Promise::new(deal.buyer.clone()).transfer(amount)
+    }
+
+    /// Ends a dispute: the seller gets `seller_share` of what's left, the buyer the rest.
+    fn pay_split(locked: &mut NearToken, deal: &mut Deal, seller_share: NearToken) {
+        let remaining = Self::remaining(deal);
+        *locked = locked.saturating_sub(remaining);
+        deal.status = DealStatus::Split;
+        deal.updated_at = U64(env::block_timestamp());
+        for (to, amount) in [
+            (&deal.seller, seller_share),
+            (&deal.buyer, remaining.saturating_sub(seller_share)),
+        ] {
+            if !amount.is_zero() {
+                Promise::new(to.clone()).transfer(amount).detach();
+            }
+        }
     }
 
     /// What's still in escrow for this deal.
@@ -781,7 +833,7 @@ mod tests {
             NearToken::from_near(0),
             DISPUTE_WINDOW_NS - 1,
         );
-        let _ = contract.refund_on_timeout(id);
+        contract.refund_on_timeout(id);
     }
 
     /// Test 32: anyone refunds the buyer after the dispute window.
@@ -789,7 +841,7 @@ mod tests {
     fn timeout_refunds_buyer() {
         let (mut contract, id) = disputed();
         set_caller("anyone.testnet", NearToken::from_near(0), DISPUTE_WINDOW_NS);
-        let _ = contract.refund_on_timeout(id);
+        contract.refund_on_timeout(id);
         assert_eq!(status(&contract, id), DealStatus::Refunded);
     }
 
@@ -810,12 +862,89 @@ mod tests {
         assert_eq!(reports(), 0);
     }
 
-    /// Test 35: a dispute that times out is reported for both sides.
+    /// Test 35: a dispute before delivery that times out touches nobody's reputation.
     #[test]
-    fn timeout_reports_both_sides() {
+    fn undelivered_timeout_reports_nothing() {
         let (mut contract, id) = disputed();
         set_caller("anyone.testnet", NearToken::from_near(0), DISPUTE_WINDOW_NS);
-        let _ = contract.refund_on_timeout(id);
+        contract.refund_on_timeout(id);
+        assert_eq!(reports(), 0);
+    }
+
+    /// Test 36: a dispute after delivery that times out splits 50/50 and is reported.
+    #[test]
+    fn delivered_timeout_splits() {
+        let (mut contract, id) = delivered();
+        set_caller(BUYER, NearToken::from_near(0), 0);
+        contract.dispute(id);
+        set_caller("anyone.testnet", NearToken::from_near(0), DISPUTE_WINDOW_NS);
+        contract.refund_on_timeout(id);
+        assert_eq!(status(&contract, id), DealStatus::Split);
         assert_eq!(reports(), 2);
+        assert_eq!(contract.locked, NearToken::from_near(0));
+    }
+
+    /// Test 37: no dispute once the review window is over.
+    #[test]
+    #[should_panic(expected = "Review window is over")]
+    fn late_dispute_fails() {
+        let (mut contract, id) = delivered();
+        set_caller(BUYER, NearToken::from_near(0), REVIEW_WINDOW_NS);
+        contract.dispute(id);
+    }
+
+    /// Test 38: the seller can't dispute before delivering.
+    #[test]
+    #[should_panic(expected = "Only the buyer can dispute before delivery")]
+    fn seller_cannot_dispute_before_delivery() {
+        let (mut contract, id) = accepted();
+        set_caller(SELLER, NearToken::from_near(0), 0);
+        contract.dispute(id);
+    }
+
+    /// Test 39: a seller who accepted and never delivered is reported.
+    #[test]
+    fn no_show_seller_is_reported() {
+        let (mut contract, id) = accepted();
+        set_caller("anyone.testnet", NearToken::from_near(0), DEADLINE + 1);
+        let _ = contract.refund_expired(id);
+        assert_eq!(reports(), 2);
+    }
+
+    /// Test 40: an offer nobody accepted expires with no report.
+    #[test]
+    fn expired_offer_reports_nothing() {
+        let (mut contract, id) = proposed();
+        set_caller("anyone.testnet", NearToken::from_near(0), DEADLINE + 1);
+        let _ = contract.refund_expired(id);
+        assert_eq!(reports(), 0);
+    }
+
+    /// Test 41: locked rises with each deal and falls with every payout.
+    #[test]
+    fn locked_tracks_open_deals() {
+        let (mut contract, id) = two_milestones();
+        assert_eq!(contract.locked, NearToken::from_near(1));
+        deliver_and_confirm(&mut contract, id);
+        assert_eq!(contract.locked, NearToken::from_millinear(500));
+        set_caller("anyone.testnet", NearToken::from_near(0), DEADLINE + 1);
+        let _ = contract.refund_expired(id);
+        assert_eq!(contract.locked, NearToken::from_near(0));
+    }
+
+    /// Test 42: a new deal is refused if storage would eat into locked money.
+    #[test]
+    #[should_panic(expected = "Escrow needs more NEAR for storage")]
+    fn deal_refused_without_storage_funds() {
+        let mut contract = setup();
+        let one = NearToken::from_near(1);
+        let context = VMContextBuilder::new()
+            .current_account_id(account("escrow.bizzy-fy.testnet"))
+            .predecessor_account_id(account(BUYER))
+            .attached_deposit(one)
+            .account_balance(one)
+            .build();
+        testing_env!(context);
+        contract.create_deal(account(SELLER), hash(1), U64(DEADLINE), vec![one]);
     }
 }
