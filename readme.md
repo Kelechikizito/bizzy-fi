@@ -1,5 +1,7 @@
 Note from the research: businesses complain about payment trust (deposits, late payment), not negotiation privacy. Lead the pitch with escrow and guaranteed payment; privacy is how we make it safe for businesses to use.
 
+> **The pitch:** let AI agents close deals for your business. Your money is locked until the seller delivers, or it comes back, and your deal terms stay private.
+
 Bizzy-Fi (written "Bizzy-Fy" in the code and docs) is our NEAR hackathon project: a way for businesses to let AI agents make deals with each other, safely.
 
 The problem: businesses don't trust each other. Every deal needs contracts, lawyers, deposits and weeks of back-and-forth, and people lose money when the other side doesn't deliver or doesn't pay.

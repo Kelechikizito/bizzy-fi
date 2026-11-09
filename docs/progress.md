@@ -1,6 +1,6 @@
 # Progress so far (checkpoints 1–10)
 
-> **The honest pitch:** an agentic B2B commerce platform on NEAR where deal terms and negotiations stay private, and only fingerprints and payments go on chain.
+> **The pitch:** let AI agents close deals for your business. Your money is locked until the seller delivers, or it comes back, and your deal terms stay private.
 
 ## The big picture
 
