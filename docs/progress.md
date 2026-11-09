@@ -1,4 +1,4 @@
-# Progress so far (checkpoints 1–10)
+# Progress so far (checkpoints 1–11)
 
 > **The pitch:** let AI agents close deals for your business. Your money is locked until the seller delivers, or it comes back, and your deal terms stay private.
 
@@ -57,8 +57,9 @@ The agent never touches the escrow directly: every action goes through its compa
 - **The terms stay private:** only their fingerprint (hash) is on the blockchain.
 - **Pay in stages (milestones):** e.g. 30% / 40% / 30%. They must add up to the full amount.
 - **The buyer goes quiet?** After a 1-hour review window, anyone can release the payment.
-- **Seller never delivers?** After the deadline, anyone can send the money back to the buyer.
-- **Disagreement?** Either side can dispute. Both must offer the **same** split to settle it. If they don't agree within 1 hour, the buyer gets back what's left.
+- **Seller never delivers?** After the deadline, anyone can send the money back to the buyer. If the seller had accepted, their score drops.
+- **Disagreement?** The buyer can dispute before delivery; either side can dispute during the review window. Both must offer the **same** split to settle it.
+- **No agreement within 1 hour?** If the seller had marked delivery, what's left is split 50/50 and both lose score. If not, the buyer gets it back and nobody's score changes.
 - **Golden rule:** every path ends with the money in exactly one place, and it can never be paid twice.
 
 ## Words worth knowing
@@ -79,7 +80,7 @@ The agent never touches the escrow directly: every action goes through its compa
 
 | Kind of test | What it does | Count |
 |---|---|---|
-| **Unit tests** | Run the contract on your computer with a fake blockchain. Fast. | Policy 48 · Registry 26 · Escrow 35 |
+| **Unit tests** | Run the contract on your computer with a fake blockchain. Fast. | Policy 49 · Registry 26 · Escrow 42 |
 | **Property tests** | Throw random amounts at the spending checks to look for any way past the limits. | 2 |
 | **Sandbox tests** | Run the contracts on a real NEAR node on your computer, with real money moving. Five run all three together, start to finish. | 8 |
 | **Clippy** | Rust's code checker: flags risky or messy code. | Clean |
@@ -100,6 +101,7 @@ In short: **what** was agreed is private; **that** acme paid beta 2 NEAR is publ
 
 ## Known limits (to say honestly in the README)
 
+- **A delivery is only the seller's word.** With no referee, a seller who falsely marks delivery can still get half if the buyer won't agree a split (and loses score for it).
 - **Paying a partner reveals that partner** (its salt is sent with the payment). The deal shows who paid whom anyway.
 - **Every agent request is a public transaction.** `open_deal` carries the partner and amount in the clear, because the contract needs them to check the limits. So pending approvals, and deals the guardian never approves, are visible to anyone reading transactions. Hiding them would need confidential payments, which is beyond the hackathon.
 - **The allowlist salts live in our backend.** If they're lost, the guardian re-adds partners; nothing on chain breaks.
@@ -112,7 +114,6 @@ In short: **what** was agreed is private; **that** acme paid beta 2 NEAR is publ
 
 | # | Checkpoint | Who |
 |---|---|---|
-| 11 | Deploy to testnet + demo companies | Claude |
 | 12–15 | Backend, website, AI agents, deal pages | Claude |
 | 16–17 | Direct connections, netting | you + Claude |
 | 18–22 | Security review, profile and sharing, README, demo video, submit | both |

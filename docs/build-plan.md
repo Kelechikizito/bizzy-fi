@@ -37,7 +37,7 @@ Deadline: **2026-11-14 23:59 UTC**.
 - [x] 9: Wiring the three contracts together
 - [x] 9b: Privacy and cost fixes: salted allowlist, shared policy code
 - [x] 10: Sandbox tests (Claude)
-- [ ] 11: Testnet deploy and demo seed (Claude)
+- [x] 11: Testnet deploy and demo seed (Claude)
 - [ ] 12: Backend base (Claude)
 - [ ] 13: Frontend shell, onboarding, dashboard, freeze (Claude)
 - [ ] 14: Agent layer: private negotiation (Claude)
