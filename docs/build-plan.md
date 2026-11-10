@@ -40,7 +40,7 @@ Deadline: **2026-11-14 23:59 UTC**.
 - [x] 11: Testnet deploy and demo seed (Claude)
 - [x] 12: Backend base (Claude)
 - [ ] 13: Frontend shell, onboarding, dashboard, freeze (Claude)
-- [ ] 14: Agent layer: private negotiation (Claude)
+- [x] 14: Agent layer: private negotiation (Claude)
 - [ ] 15: Deal pages end to end (Claude)
 - [ ] 16: Direct connections (you: contract; Claude: UI)
 - [ ] 17: Netting (you: contract; Claude: tests and UI)

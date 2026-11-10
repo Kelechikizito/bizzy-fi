@@ -21,7 +21,7 @@ Stack: Next.js 16, React 19, Tailwind v4 (no PostCSS config; tokens live in `app
 | Folder                                     | Yours?               | What it is                                                                 |
 | ------------------------------------------ | -------------------- | -------------------------------------------------------------------------- |
 | `app/*/page.tsx`                           | **Yes**              | The pages. Layout, copy, components                                        |
-| `components/`                              | **Yes**              | `ui.tsx` (Frame, Button, Receipt, Problem), `world-id.tsx`, `treasury.tsx` |
+| `components/`                              | **Yes**              | `ui.tsx` (Frame, Button, Receipt, Problem), `world-id.tsx`, `treasury.tsx`, `agent.tsx` |
 | `app/globals.css`, `app/layout.tsx`        | **Yes**              | Colours, fonts                                                             |
 | `lib/near/read.ts`, `lib/near/treasury.ts` | Read only, ask first | Reads from the chain                                                       |
 | `lib/wallet.tsx`                           | Don't change         | Login and signing (Privy + NEAR wallets)                                   |
@@ -43,7 +43,7 @@ const {
 
 - `account`: `undefined` while checking, `null` when signed out, else the account name. Pages redirect on `null`.
 - `send(receiver, calls, transfer?)`: signs and sends one transaction; resolves to `{ hash, value }`. Takes a few seconds. Show progress on the button and the `hash` as a `<Receipt>` link afterwards.
-- `api(path, body)`: POSTs to our backend and throws the server's error message.
+- `api(path, body)`: POSTs to our backend and throws the server's error message. Agent routes: `/api/companies/[id]/negotiate` (`{ want, max }`, takes 15 to 30 s), `/negotiations` (the list), `/brief` (the private seller notes).
 
 Reads (no login needed):
 
@@ -62,7 +62,7 @@ Reads (no login needed):
 | `/`          | Placeholder; real landing page is checkpoint 19                                                               | Get started                                                                                                                                             |
 | `/login`     | One Privy button + "I already have a NEAR account"                                                            | `signInWithPrivy`, `signInWithWallet`                                                                                                                   |
 | `/start`     | 7 steps with a step list                                                                                      | Open business: `create_company` on the registry. Prove human: `<WorldIdButton>`. Turn on agent: `/api/companies/[id]/agent-key` then `set_agent_key`    |
-| `/dashboard` | Name, about, score, human badge, Freeze switch, balance, spent vs limit, treasury, approvals, deals, settings | `freeze` (+ cancel waiting deals), `unfreeze` + `set_agent_key`, `approve` / `reject`, `set_limits`, add money (transfer), `withdraw`, treasury actions |
+| `/dashboard` | Name, about, score, human badge, Freeze switch, balance, spent vs limit, treasury, approvals, deals, settings, **Ask your agent** + negotiation summaries with the Verified private badge (`components/agent.tsx`) | `freeze` (+ cancel waiting deals), `unfreeze` + `set_agent_key`, `approve` / `reject`, `set_limits`, add money (transfer), `withdraw`, treasury actions |
 
 Every contract method and its arguments are already written in the page code; copy them when moving buttons around.
 
@@ -93,7 +93,7 @@ Colours in `app/globals.css`: `paper #e9efec` (background), `card #f6f9f7`, `ink
 
 | Checkpoint | Pages                                                                          |
 | ---------- | ------------------------------------------------------------------------------ |
-| 14         | "Ask your agent" box and a negotiation summary with a "Verified private" badge |
+| 14         | Done, working; restyle `components/agent.tsx` freely (keep the badge only when `proof.verified`) |
 | 15         | Deal pages: status timeline, mark delivered, release, dispute                  |
 | 16         | Invite link / QR to approve a business                                         |
 | 17         | Netting: running balance per partner, settle                                   |
