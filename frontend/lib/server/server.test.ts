@@ -54,6 +54,20 @@ test("each deal gets the right action only when it's due", () => {
 
 test("a World nullifier becomes a 32-byte hash, and junk is refused", () => {
   assert.equal(nullifierToHash("0x1"), "11111111111111111111111111111112");
-  assert.throws(() => nullifierToHash("12"));
+  assert.equal(nullifierToHash("1"), nullifierToHash("0x1"));
+  assert.equal(nullifierToHash("255"), nullifierToHash("0xff"));
+  assert.throws(() => nullifierToHash("abc"));
   assert.throws(() => nullifierToHash(`0x${"f".repeat(65)}`));
+  assert.throws(() => nullifierToHash((2n ** 256n).toString()));
+});
+
+test("a raw-hash signer's login signature passes the server's NEP-413 check", async () => {
+  const { generateKey, parseKey, verifyNep413Signature } = await import("near-kit");
+  const { nep413Hash } = await import("../near/nep413.ts");
+  const key = parseKey(generateKey().secretKey);
+  const params = { message: "Sign in to Bizzy-Fy", recipient: "bizzy-fy", nonce: randomBytes(32) };
+  const signature = key.sign(await nep413Hash(params.message, params.recipient, params.nonce)).data;
+  const signed = { accountId: Buffer.from(key.publicKey.data).toString("hex"), publicKey: key.publicKey.toString(), signature: Buffer.from(signature).toString("base64") };
+  assert.equal(await verifyNep413Signature(signed, params, { nonceValidation: "none" }), true);
+  assert.equal(await verifyNep413Signature(signed, { ...params, recipient: "other" }, { nonceValidation: "none" }), false);
 });

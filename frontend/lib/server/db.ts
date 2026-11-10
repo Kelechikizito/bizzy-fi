@@ -5,6 +5,7 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS challenges (nonce TEXT PRIMARY KEY, expires_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS agent_keys (company TEXT PRIMARY KEY, public_key TEXT NOT NULL, sealed TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS terms (hash TEXT PRIMARY KEY, buyer TEXT NOT NULL, seller TEXT NOT NULL, sealed TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sponsored (account TEXT PRIMARY KEY, at INTEGER NOT NULL);
 `;
 
 let client: Promise<Client> | undefined;

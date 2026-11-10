@@ -21,10 +21,10 @@ export function requestProof() {
   };
 }
 
-/** World's 256-bit hex nullifier as the 32-byte base58 hash the registry stores. */
-export function nullifierToHash(hex: string): string {
-  if (!/^0x[0-9a-fA-F]{1,64}$/.test(hex)) throw new HttpError(400, "Bad World ID proof");
-  return base58.encode(Buffer.from(hex.slice(2).padStart(64, "0"), "hex"));
+/** World's 256-bit nullifier (decimal in v4, hex in v3) as the 32-byte base58 hash the registry stores. */
+export function nullifierToHash(value: string): string {
+  if (!/^(0x[0-9a-fA-F]{1,64}|\d{1,78})$/.test(value) || BigInt(value) >= 2n ** 256n) throw new HttpError(400, "Bad World ID proof");
+  return base58.encode(Buffer.from(BigInt(value).toString(16).padStart(64, "0"), "hex"));
 }
 
 /** Asks World to check the proof and returns its nullifier hash. */

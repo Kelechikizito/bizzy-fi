@@ -1,6 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { verifyNep413Signature, type SignedMessage } from "near-kit";
+import { parsePublicKey, verifyNep413Signature, type SignedMessage } from "near-kit";
 import { cookies } from "next/headers";
 import { REGISTRY_ID } from "../near/contracts.ts";
 import { readSession, signSession } from "./crypto.ts";
@@ -31,10 +31,12 @@ export async function logIn(nonce: string, signed: SignedMessage): Promise<strin
     args: [nonce, Date.now()],
   });
   if (!rows[0]) throw new HttpError(401, "Sign-in expired. Please try again.");
+  // A brand-new account named after its own key (Privy) has no keys on chain yet, so the signature alone proves it.
+  const fresh = signed.accountId === implicitId(signed.publicKey) && !(await reader.accountExists(signed.accountId));
   const valid = await verifyNep413Signature(
     signed,
     { message: MESSAGE, recipient: RECIPIENT, nonce: Buffer.from(nonce, "base64") },
-    { near: reader, nonceValidation: "none" },
+    { near: fresh ? undefined : reader, nonceValidation: "none" },
   );
   if (!valid) throw new HttpError(401, "That signature didn't check out");
   const expires = Date.now() + SESSION_MS;
@@ -46,6 +48,21 @@ export async function logIn(nonce: string, signed: SignedMessage): Promise<strin
     expires,
   });
   return signed.accountId;
+}
+
+/** The account ID a key owns without anyone creating it: the key's 32 bytes in hex. */
+function implicitId(publicKey: string): string | null {
+  try {
+    const key = parsePublicKey(publicKey);
+    return key.keyType === 0 ? Buffer.from(key.data).toString("hex") : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Ends the session. */
+export async function logOut() {
+  (await cookies()).delete(COOKIE);
 }
 
 /** The logged-in account; a 401 if there isn't one. */
