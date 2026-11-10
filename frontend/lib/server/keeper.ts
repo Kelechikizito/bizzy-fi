@@ -1,6 +1,6 @@
 import "server-only";
 import { DISPUTE_WINDOW_MS, ESCROW_ID, REVIEW_WINDOW_MS } from "../near/contracts.ts";
-import { backendSigner, reader, send } from "./near.ts";
+import { keeperSigner, reader, send } from "./near.ts";
 
 type Deal = { status: string; deliver_by: string; updated_at: string };
 
@@ -27,7 +27,7 @@ export async function settleDue() {
       const method = dueAction(deal, now);
       if (!method || results.length >= MAX_PER_RUN) continue;
       try {
-        results.push({ id, method, tx: await send(backendSigner(), ESCROW_ID, method, { id }) });
+        results.push({ id, method, tx: await send(keeperSigner(), ESCROW_ID, method, { id }) });
       } catch (error) {
         results.push({ id, method, error: String(error) });
       }

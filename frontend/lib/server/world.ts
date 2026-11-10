@@ -6,7 +6,7 @@ import { HttpError, need } from "./http.ts";
 import { backendSigner, send } from "./near.ts";
 
 const ACTION = "verify-guardian";
-const environment = () => process.env.WORLD_ENVIRONMENT ?? "staging";
+const environment = () => process.env.WORLD_ENVIRONMENT ?? "sandbox";
 
 type WorldProof = { action?: string; environment?: string; responses?: { nullifier?: string }[] };
 

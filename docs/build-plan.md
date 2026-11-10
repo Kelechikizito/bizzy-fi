@@ -38,7 +38,7 @@ Deadline: **2026-11-14 23:59 UTC**.
 - [x] 9b: Privacy and cost fixes: salted allowlist, shared policy code
 - [x] 10: Sandbox tests (Claude)
 - [x] 11: Testnet deploy and demo seed (Claude)
-- [ ] 12: Backend base (Claude)
+- [x] 12: Backend base (Claude)
 - [ ] 13: Frontend shell, onboarding, dashboard, freeze (Claude)
 - [ ] 14: Agent layer: private negotiation (Claude)
 - [ ] 15: Deal pages end to end (Claude)

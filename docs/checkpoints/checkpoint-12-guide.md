@@ -20,19 +20,31 @@ The database is a local file (`bizzy.db`). For the hosted site, set `DATABASE_UR
 
 ### 1. The backend's key
 
-Run this in your own terminal, and copy the private key it prints:
+Run this in your own terminal. It makes a key that can only call `attest` and spend at most 1 NEAR on fees:
 
 ```sh
-near account export-account bizzy-fy-attester.testnet using-private-key network-config testnet
+near account add-key bizzy-fy-attester.testnet grant-function-call-access --allowance '1 NEAR' --contract-account-id bizzy-fy.testnet --function-names 'attest' autogenerate-new-keypair print-to-terminal network-config testnet sign-with-keychain send
 ```
 
-Add it to `frontend/.env.local`, and never paste it into a chat:
+Add the **private** key it prints (the long one, about 88 characters) to `frontend/.env.local`, and never paste it into a chat:
 
 ```
 ATTESTER_KEY=ed25519:...
 ```
 
-### 2. World ID (staging)
+A key can only call one contract, so the settlement job needs a second key, limited to the escrow's settle methods:
+
+```sh
+near account add-key bizzy-fy-attester.testnet grant-function-call-access --allowance '1 NEAR' --contract-account-id escrow.bizzy-fy.testnet --function-names 'refund_expired,release_due,refund_on_timeout' autogenerate-new-keypair print-to-terminal network-config testnet sign-with-keychain send
+```
+
+Add its secret keypair as:
+
+```
+KEEPER_KEY=ed25519:...
+```
+
+### 2. World ID (sandbox)
 
 At https://developer.world.org, create an app and an action named exactly `verify-guardian`. Then add:
 
@@ -40,7 +52,7 @@ At https://developer.world.org, create an app and an action named exactly `verif
 WORLD_APP_ID=app_...
 WORLD_RP_ID=rp_...
 WORLD_SIGNING_KEY=...
-WORLD_ENVIRONMENT=staging
+WORLD_ENVIRONMENT=sandbox
 ```
 
 Test with the simulator at https://simulator.worldcoin.org/.

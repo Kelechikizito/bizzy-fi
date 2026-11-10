@@ -16,6 +16,8 @@ const signer = (id: string, privateKey: string): Signer => ({
 
 /** The backend's own account: writes verified facts and settles due deals. It can't touch company money. */
 export const backendSigner = () => signer(ATTESTER_ID, need("ATTESTER_KEY"));
+/** Same account, but a key that can only call the escrow's settle methods. */
+export const keeperSigner = () => signer(ATTESTER_ID, need("KEEPER_KEY"));
 
 /** Sends one contract call and returns its transaction hash. A refused call becomes a 409. */
 export async function send(from: Signer, to: string, method: string, args: object): Promise<string> {
