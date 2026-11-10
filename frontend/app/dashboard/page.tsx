@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AgentBrief, AskAgent } from "@/components/agent";
 import { Treasury } from "@/components/treasury";
@@ -207,12 +208,14 @@ export default function Dashboard() {
         ) : (
           <ul className="mt-4 divide-y divide-rule border-y border-rule">
             {data.deals.map(([deal, d]) => (
-              <li key={deal} className="flex flex-wrap justify-between gap-2 py-3">
-                <span>
-                  {d.buyer === id ? `Buying from ${d.seller}` : `Selling to ${d.buyer}`}
-                  <span className="ml-2 font-medium">{toNear(d.amount)} NEAR</span>
-                </span>
-                <span className="text-muted">{STATUS[d.status] ?? d.status}</span>
+              <li key={deal}>
+                <Link href={`/deals/${deal}`} className="flex flex-wrap justify-between gap-2 py-3 hover:bg-card">
+                  <span>
+                    {d.buyer === id ? `Buying from ${d.seller}` : `Selling to ${d.buyer}`}
+                    <span className="ml-2 font-medium">{toNear(d.amount)} NEAR</span>
+                  </span>
+                  <span className="text-muted underline-offset-4">{STATUS[d.status] ?? d.status} ›</span>
+                </Link>
               </li>
             ))}
           </ul>

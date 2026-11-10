@@ -211,6 +211,12 @@ async function update(n: Negotiation) {
   await (await db()).execute({ sql: "UPDATE negotiations SET status = ?, sealed = ? WHERE id = ?", args: [n.status, seal(`negotiation:${n.id}`, JSON.stringify(n)), n.id] });
 }
 
+/** The negotiation that agreed the terms with this fingerprint. */
+export async function byTermsHash(hash: string): Promise<Negotiation | null> {
+  const { rows } = await (await db()).execute({ sql: "SELECT id, sealed FROM negotiations WHERE terms_hash = ?", args: [hash] });
+  return rows[0] ? JSON.parse(open(`negotiation:${rows[0].id}`, String(rows[0].sealed))) : null;
+}
+
 /** The latest negotiations this company took part in, buying or selling. */
 export async function list(company: string): Promise<Negotiation[]> {
   const { rows } = await (await db()).execute({

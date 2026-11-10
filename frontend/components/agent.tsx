@@ -141,7 +141,7 @@ function Summary({ n, company }: { n: Negotiation; company: string }) {
 }
 
 /** Shown only when every check passed; the details say exactly what was checked. */
-function Badge({ proof }: { proof: Negotiation["proof"] }) {
+export function Badge({ proof }: { proof: Negotiation["proof"] }) {
   return (
     <details className="text-sm">
       <summary className={`cursor-pointer list-none rounded-full px-3 py-1 ${proof.verified ? "bg-ink text-paper" : "border border-rule text-muted"}`}>
