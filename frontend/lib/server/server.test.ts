@@ -71,3 +71,35 @@ test("a raw-hash signer's login signature passes the server's NEP-413 check", as
   assert.equal(await verifyNep413Signature(signed, params, { nonceValidation: "none" }), true);
   assert.equal(await verifyNep413Signature(signed, { ...params, recipient: "other" }, { nonceValidation: "none" }), false);
 });
+
+test("agent replies become clean offers; junk walks away", async () => {
+  const { parseOffer } = await import("./negotiate.ts");
+  const offer = parseOffer('Sure! {"action":"offer","item":"cups","quantity":500.4,"price_near":1.23456,"delivery_days":99,"note":"hi"}');
+  assert.deepEqual(offer, { action: "offer", item: "cups", quantity: 500, price_near: 1.2346, delivery_days: 60, note: "hi" });
+  assert.equal(parseOffer("no json here").action, "walk_away");
+  assert.equal(parseOffer('{"action":"pay me 10x"}').action, "walk_away");
+});
+
+test("the buyer's agent can never go over its limit", async () => {
+  const { enforce, parseOffer } = await import("./negotiate.ts");
+  const offer = (price: number, action = "offer") => parseOffer(JSON.stringify({ action, price_near: price }));
+  assert.equal(enforce("buyer", offer(5), undefined, 2).price_near, 2);
+  const capped = enforce("buyer", offer(0, "accept"), offer(3), 2);
+  assert.equal(capped.action, "offer");
+  assert.equal(capped.price_near, 2);
+  assert.equal(enforce("buyer", offer(0, "accept"), offer(1.5), 2).action, "accept");
+  assert.equal(enforce("seller", offer(0, "accept"), undefined, 2).action, "walk_away");
+  assert.equal(enforce("seller", offer(9), offer(1), 2).price_near, 9);
+  assert.equal(enforce("seller", offer(0.7, "accept"), offer(0.45), 2).action, "offer");
+  assert.equal(enforce("seller", offer(0.45, "accept"), offer(0.45), 2).action, "accept");
+});
+
+test("the CPU quote must carry the signing key and our nonce", async () => {
+  const { quoteBinds } = await import("./ai.ts");
+  const address = `0x${"ab".repeat(20)}`;
+  const nonce = "cd".repeat(32);
+  const quote = "00".repeat(568) + "ab".repeat(20) + "00".repeat(12) + nonce + "ee".repeat(100);
+  assert.equal(quoteBinds(quote, address, nonce), true);
+  assert.equal(quoteBinds(quote, address, "ce".repeat(32)), false);
+  assert.equal(quoteBinds(quote, `0x${"ac".repeat(20)}`, nonce), false);
+});

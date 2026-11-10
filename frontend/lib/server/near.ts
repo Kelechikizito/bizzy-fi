@@ -20,10 +20,14 @@ export const backendSigner = () => signer(ATTESTER_ID, need("ATTESTER_KEY"));
 export const keeperSigner = () => signer(ATTESTER_ID, need("KEEPER_KEY"));
 
 /** Sends one contract call and returns its transaction hash. A refused call becomes a 409. */
-export async function send(from: Signer, to: string, method: string, args: object): Promise<string> {
+export const send = async (from: Signer, to: string, method: string, args: object) => (await call(from, to, method, args)).hash;
+
+/** Like `send`, but also returns what the contract returned. NEAR holds back the fee for all of `gas` while the call runs, so a smaller budget leaves more balance to spend. */
+export async function call<T = unknown>(from: Signer, to: string, method: string, args: object, gas = "200 Tgas"): Promise<{ hash: string; value: T }> {
   try {
-    const result = await from.near.transaction(from.id).functionCall(to, method, args, { gas: "200 Tgas" }).send({ waitUntil: "FINAL" });
-    return result.transaction.hash;
+    const result = await from.near.transaction(from.id).functionCall(to, method, args, { gas: gas as `${number} Tgas` }).send({ waitUntil: "FINAL" });
+    const value = (result.status as { SuccessValue?: string }).SuccessValue;
+    return { hash: result.transaction.hash, value: value ? JSON.parse(Buffer.from(value, "base64").toString()) : undefined };
   } catch (error) {
     if (error instanceof FunctionCallError) throw new HttpError(409, error.panic ?? "The contract refused this");
     throw error;

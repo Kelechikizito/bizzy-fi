@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { AgentBrief, AskAgent } from "@/components/agent";
 import { Treasury } from "@/components/treasury";
 import { Button, Frame, Problem, Receipt } from "@/components/ui";
 import { WorldIdButton } from "@/components/world-id";
@@ -169,6 +170,8 @@ export default function Dashboard() {
         </div>
       </section>
 
+      <AskAgent company={id} cap={Number(toNear(data.limits.per_deal_cap).replace(/,/g, ""))} version={data} onDone={() => void reload(id)} />
+
       <Treasury company={id} account={account!} busy={!!busy} act={act} />
 
       {data.approvals.length > 0 && (
@@ -228,9 +231,11 @@ export default function Dashboard() {
             },
           ])
         }
+        onAllowlist={(only) => void act("Rule changed", [{ method: "set_limits", args: { limits: { ...data.limits, allowlist_only: only } }, deposit: ONE }])}
         onAdd={(n) => void act("Money added", [], `${toYocto(n)} yocto`)}
         onWithdraw={(n) => void act("Money taken out", [{ method: "withdraw", args: { amount: toYocto(n), to: account }, deposit: ONE, gas: "50 Tgas" }])}
       />
+      <AgentBrief company={id} />
       <p className="mt-10 text-sm text-muted">
         Your business address is {id}. Your score comes from the {REGISTRY_ID} directory.
       </p>
@@ -240,8 +245,9 @@ export default function Dashboard() {
 
 function Settings(props: {
   busy: boolean;
-  current: { per_deal_cap: string };
+  current: { per_deal_cap: string; allowlist_only: boolean };
   onLimits(i: number): void;
+  onAllowlist(only: boolean): void;
   onAdd(n: number): void;
   onWithdraw(n: number): void;
 }) {
@@ -258,6 +264,14 @@ function Settings(props: {
             onClick={() => props.onLimits(i)}
           >
             {l.label}: {l.perDeal} a deal, {l.perWeek} a week
+          </Button>
+        ))}
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="text-muted">Who your agent may pay:</span>
+        {[false, true].map((only) => (
+          <Button key={String(only)} variant="plain" disabled={props.busy || props.current.allowlist_only === only} onClick={() => props.onAllowlist(only)}>
+            {only ? "Only businesses I approve" : "Any business"}
           </Button>
         ))}
       </div>
