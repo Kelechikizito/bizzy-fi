@@ -7,7 +7,7 @@ export default function Home() {
   const { account } = useSession();
   return (
     <Frame>
-      <h1 className="font-display text-5xl font-bold leading-[1.05] tracking-tight">Your agent buys. You stay in charge.</h1>
+      <h1 className="font-display text-5xl font-bold leading-[1.05] tracking-tight">Privacy-by-default B2B commerce for your agents.</h1>
       <p className="mt-6 text-lg leading-relaxed text-muted">
         Bizzy-Fy lets an AI agent agree deals with other businesses for you. It can only spend what you allow, the money is held until the seller
         delivers, and one button stops it.
