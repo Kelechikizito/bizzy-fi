@@ -21,7 +21,7 @@ Stack: Next.js 16, React 19, Tailwind v4 (no PostCSS config; tokens live in `app
 | Folder                                     | Yours?               | What it is                                                                 |
 | ------------------------------------------ | -------------------- | -------------------------------------------------------------------------- |
 | `app/*/page.tsx`                           | **Yes**              | The pages. Layout, copy, components                                        |
-| `components/`                              | **Yes**              | `ui.tsx` (Frame, Button, Receipt, Problem), `world-id.tsx`, `treasury.tsx`, `agent.tsx`, `connections.tsx` |
+| `components/`                              | **Yes**              | `ui.tsx` (Frame, Button, Receipt, Problem), `world-id.tsx`, `treasury.tsx`, `agent.tsx`, `connections.tsx`, `share.tsx` (Post on X) |
 | `app/globals.css`, `app/layout.tsx`        | **Yes**              | Colours, fonts                                                             |
 | `lib/near/read.ts`, `lib/near/treasury.ts` | Read only, ask first | Reads from the chain                                                       |
 | `lib/wallet.tsx`                           | Don't change         | Login and signing (Privy + NEAR wallets)                                   |
@@ -62,6 +62,8 @@ Reads (no login needed):
 | `/`          | Placeholder; real landing page is checkpoint 19                                                               | Get started                                                                                                                                             |
 | `/login`     | One Privy button + "I already have a NEAR account"                                                            | `signInWithPrivy`, `signInWithWallet`                                                                                                                   |
 | `/start`     | 7 steps with a step list                                                                                      | Open business: `create_company` on the registry. Prove human: `<WorldIdButton>`. Turn on agent: `/api/companies/[id]/agent-key` then `set_agent_key`    |
+| `/` | Landing: real negotiation hero, how a deal goes, safety rules, FAQ | none |
+| `/b/[name]` | Public profile: score and track record from the registry, share card (`opengraph-image.tsx`) | none (reads only) |
 | `/invite/[code]` | Who invited you; sign up first if needed, then **Connect** (adds them to your approved list) | `allow_counterparty` |
 | `/deals/[id]` | Timeline, next step with deadline, private terms, negotiation, badge; buttons only for moves the escrow allows your side | `deal_action`: `cancel`, `mark_delivered`, `confirm`, `dispute`, `propose_split` |
 | `/dashboard` | Name, about, score, human badge, Freeze switch, balance, spent vs limit, treasury, approvals, deals, settings, **Ask your agent** + negotiation summaries with the Verified private badge (`components/agent.tsx`) | `freeze` (+ cancel waiting deals), `unfreeze` + `set_agent_key`, `approve` / `reject`, `set_limits`, add money (transfer), `withdraw`, treasury actions |
@@ -99,7 +101,7 @@ Colours in `app/globals.css`: `paper #e9efec` (background), `card #f6f9f7`, `ink
 | 15         | Built (`app/deals/[id]/page.tsx`); restyle freely, keep the buttons' status rules |
 | 16         | Built (`components/connections.tsx`, `app/invite/[code]/page.tsx`); no contract changes needed |
 | 17         | Netting: running balance per partner, settle                                   |
-| 19         | Landing page + FAQ, public profile, referral link, share-to-X card             |
+| 19         | Built: landing, `/b/[name]` profiles, share images, Post on X; hosting is yours (see checkpoint-19-guide) |
 
 ## Test accounts
 
