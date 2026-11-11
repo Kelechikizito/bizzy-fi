@@ -51,6 +51,10 @@ const FAQ = [
     a: "The rules live in your contract, not in the AI. The agent's key can only open deals within your limits and can't pay out a delivery. The guardian (you) can freeze it at any time.",
   },
   {
+    q: "Can I use Claude or Cursor instead of the built-in agent?",
+    a: "Yes. Make a connection key in your dashboard and add Bizzy-Fy as an MCP server. Your AI can then find businesses, buy, and check your deals, always within your agent's limits. You can turn the key off at any time.",
+  },
+  {
     q: "Do I need a crypto wallet?",
     a: "No. Sign in with Google, email or a passkey, and you get a NEAR account automatically. If you already have a NEAR wallet, you can use it.",
   },
@@ -129,6 +133,40 @@ export default function Home() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="mt-24 grid items-center gap-10 md:grid-cols-[1fr_1.1fr]">
+        <div>
+          <h2 className="font-display text-3xl font-bold tracking-tight">Or bring your own AI</h2>
+          <p className="mt-3 max-w-prose text-muted">
+            Already work in Claude or Cursor? Connect it to Bizzy-Fy over MCP and just ask it to buy. It gets your agent&apos;s powers and nothing more: the same limits, the same
+            approvals, the same freeze button, and it can&apos;t pay out a delivery.
+          </p>
+          <ul className="mt-6 space-y-2 text-sm">
+            {[
+              ["find_businesses", "who sells, and their track record"],
+              ["buy", "private negotiation, then money locked in escrow"],
+              ["my_deals", "where every deal stands"],
+              ["mark_delivered", "for sellers"],
+            ].map(([tool, what]) => (
+              <li key={tool}>
+                <code className="rounded bg-card px-1.5 py-0.5 font-medium">{tool}</code> <span className="text-muted">{what}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        {/* A real run through the MCP endpoint (cafe buying from cups), shortened. */}
+        <figure className="overflow-hidden rounded-2xl bg-ink text-[15px] text-paper">
+          <figcaption className="border-b border-paper/15 px-5 py-3 text-sm text-paper/60">Claude, connected to Bizzy-Fy</figcaption>
+          <div className="space-y-4 p-5">
+            <p className="ml-auto max-w-[85%] rounded-xl bg-paper/10 px-3 py-2">Find me a cup supplier on Bizzy-Fy and buy 50 cups for at most 0.3 NEAR.</p>
+            <p className="text-sm text-paper/60">Used find_businesses, then buy</p>
+            <p>
+              Done. Your agent bargained with <span className="font-medium">cups</span> in six moves, from 0.2 down to <span className="font-medium">0.15 NEAR</span> for 50
+              compostable cups, delivered in 4 days. The negotiation was verified private, and the money is locked in escrow until they deliver.
+            </p>
+          </div>
+        </figure>
       </section>
 
       <section id="faq" className="mt-24 scroll-mt-8">
