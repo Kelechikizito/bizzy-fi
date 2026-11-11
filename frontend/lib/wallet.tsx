@@ -212,7 +212,8 @@ function SessionProvider({ children }: { children: ReactNode }) {
       account,
       busy,
       error,
-      signInWithPrivy: () => login(),
+      // Already signed in to Privy (an earlier try failed on our side): just retry our step.
+      signInWithPrivy: () => (authenticated ? setPending(true) : login()),
       signInWithWallet: () =>
         run(async () => {
           const w = await connectWallet(true);
@@ -249,7 +250,7 @@ function SessionProvider({ children }: { children: ReactNode }) {
         };
       },
     }),
-    [account, busy, error, login, run, startSession, privyLogout, wallet],
+    [account, authenticated, busy, error, login, run, startSession, privyLogout, wallet],
   );
 
   return <SessionContext value={session}>{children}</SessionContext>;
