@@ -1,6 +1,6 @@
 "use client";
-// "Prove you're human" with World ID; the server checks the proof and writes it to the registry.
-import { IDKitRequestWidget, proofOfHuman, type RpContext } from "@worldcoin/idkit";
+// "Prove you're human" with World ID Selfie Check (phone camera, no Orb); the server checks the proof and writes it to the registry.
+import { IDKitRequestWidget, type RpContext, selfieCheck } from "@worldcoin/idkit";
 import { useState } from "react";
 import { api } from "@/lib/wallet";
 
@@ -31,7 +31,7 @@ export function WorldIdButton({ company, onDone, className = PILL }: { company: 
         <IDKitRequestWidget
           {...request}
           allow_legacy_proofs={false}
-          preset={proofOfHuman()}
+          preset={selfieCheck()}
           open
           onOpenChange={(open) => !open && setRequest(null)}
           handleVerify={async (result) => void (await api(`/api/companies/${company}/world-id`, result))}
