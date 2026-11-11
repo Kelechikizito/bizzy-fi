@@ -8,11 +8,17 @@ import { ShareOnX } from "@/components/share";
 import { Frame } from "@/components/ui";
 import { accountUrl } from "@/lib/near/contracts";
 import { loadProfile } from "@/lib/near/profile";
+import { getAvatar } from "@/lib/server/avatar";
 import { contactLinks, getContacts } from "@/lib/server/contacts";
 
-export async function generateMetadata({ params }: PageProps<"/b/[name]">): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps<"/b/[name]">): Promise<Metadata> {
   const { name } = await params;
-  return { title: `${name} on Bizzy-Fy`, description: `${name}'s track record: deals paid through escrow on NEAR, checked by its contracts.` };
+  return {
+    title: `${name} on Bizzy-Fy`,
+    description: `${name}'s track record: deals paid through escrow on NEAR, checked by its contracts.`,
+  };
 }
 
 export default function Page({ params }: PageProps<"/b/[name]">) {
@@ -25,20 +31,38 @@ export default function Page({ params }: PageProps<"/b/[name]">) {
   );
 }
 
-async function Profile({ params }: { params: PageProps<"/b/[name]">["params"] }) {
+async function Profile({
+  params,
+}: {
+  params: PageProps<"/b/[name]">["params"];
+}) {
   const p = await loadProfile((await params).name);
   if (!p) notFound();
-  const contacts = contactLinks(await getContacts(p.id));
+  const [contacts, avatar] = await Promise.all([
+    getContacts(p.id).then(contactLinks),
+    getAvatar(p.id),
+  ]);
   const quests = [
     { done: p.human, text: "Verified human", how: "World ID" },
-    { done: p.kyb, text: "Business check", how: p.kyb ? "KYB" : "coming next: a third-party KYB provider" },
+    {
+      done: p.kyb,
+      text: "Business check",
+      how: p.kyb ? "KYB" : "coming next: a third-party KYB provider",
+    },
     { done: p.deals > 0, text: "First deal paid", how: "through escrow" },
-    { done: p.referrals > 0, text: "Brought in a business", how: `${p.referrals} so far` },
+    {
+      done: p.referrals > 0,
+      text: "Brought in a business",
+      how: `${p.referrals} so far`,
+    },
   ];
   const stats = [
     { label: "Score", value: p.score },
     { label: "Deals paid", value: p.deals },
-    { label: "On time", value: p.deals ? `${Math.round((p.onTime / p.deals) * 100)}%` : "–" },
+    {
+      label: "On time",
+      value: p.deals ? `${Math.round((p.onTime / p.deals) * 100)}%` : "–",
+    },
     { label: "Businesses dealt with", value: p.partners },
     { label: "Paid through escrow", value: `${p.volume} NEAR` },
     { label: "Disputes lost", value: p.disputesLost },
@@ -46,11 +70,32 @@ async function Profile({ params }: { params: PageProps<"/b/[name]">["params"] })
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-5xl font-bold">{p.name}</h1>
-          <p className="mt-2 max-w-prose text-lg text-muted">{p.about}</p>
+        <div className="flex items-center gap-5">
+          {avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a small data URL, nothing to optimise
+            <img
+              src={avatar}
+              alt={`${p.name}'s profile picture`}
+              className="size-20 shrink-0 rounded-full object-cover ring-1 ring-rule"
+            />
+          ) : (
+            <span
+              className="grid size-20 shrink-0 place-items-center rounded-full bg-band font-display text-3xl font-bold uppercase text-white"
+              aria-hidden
+            >
+              {p.name[0]}
+            </span>
+          )}
+          <div>
+            <h1 className="font-display text-5xl font-bold">{p.name}</h1>
+            <p className="mt-2 max-w-prose text-lg text-muted">{p.about}</p>
+          </div>
         </div>
-        {p.human && <span className="rounded-sm bg-ink px-2 py-1 text-xs font-medium uppercase text-white">Verified human</span>}
+        {p.human && (
+          <span className="rounded-sm bg-ink px-2 py-1 text-xs font-medium uppercase text-white">
+            Verified human
+          </span>
+        )}
       </div>
 
       <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8 border-y-2 border-ink py-8 sm:grid-cols-3">
@@ -64,8 +109,14 @@ async function Profile({ params }: { params: PageProps<"/b/[name]">["params"] })
         ))}
       </dl>
       <p className="mt-4 text-sm text-muted">
-        These numbers are written only by the escrow contract when a deal settles, so nobody can edit them.{" "}
-        <a href={accountUrl(p.id)} target="_blank" rel="noreferrer" className="underline underline-offset-4">
+        These numbers are written only by the escrow contract when a deal
+        settles, so nobody can edit them.{" "}
+        <a
+          href={accountUrl(p.id)}
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-4"
+        >
           See {p.name} on NEAR
         </a>
         . Prices and what was bought stay private.
@@ -73,7 +124,9 @@ async function Profile({ params }: { params: PageProps<"/b/[name]">["params"] })
 
       <section className="mt-10 grid gap-10 sm:grid-cols-2">
         <div>
-          <h2 className="font-display text-xl font-bold">Proof of reputation</h2>
+          <h2 className="font-display text-xl font-bold">
+            Proof of reputation
+          </h2>
           <ul className="mt-3 space-y-2">
             {quests.map((q) => (
               <li key={q.text} className={q.done ? "" : "text-muted"}>
@@ -91,10 +144,17 @@ async function Profile({ params }: { params: PageProps<"/b/[name]">["params"] })
             <dl className="mt-3 space-y-2">
               {contacts.map((c) => (
                 <div key={c.label} className="flex gap-3">
-                  <dt className="w-20 shrink-0 text-sm text-muted">{c.label}</dt>
+                  <dt className="w-20 shrink-0 text-sm text-muted">
+                    {c.label}
+                  </dt>
                   <dd className="min-w-0 break-words">
                     {c.href ? (
-                      <a href={c.href} target="_blank" rel="noreferrer nofollow" className="underline underline-offset-4">
+                      <a
+                        href={c.href}
+                        target="_blank"
+                        rel="noreferrer nofollow"
+                        className="underline underline-offset-4"
+                      >
                         {c.text}
                       </a>
                     ) : (
@@ -109,10 +169,17 @@ async function Profile({ params }: { params: PageProps<"/b/[name]">["params"] })
       </section>
 
       <div className="mt-10 flex flex-wrap items-center gap-6">
-        <Link href={`/login?ref=${p.name}`} className="rounded-lg bg-ink px-6 py-3 font-medium text-white hover:bg-ink/90">
+        <Link
+          href={`/login?ref=${p.name}`}
+          className="rounded-lg bg-ink px-6 py-3 font-medium text-white hover:bg-ink/90"
+        >
           Set up your business
         </Link>
-        <ShareOnX text={`${p.name}'s track record on Bizzy-Fy: ${p.deals} deals paid through escrow on @NEARProtocol, score ${p.score}.`} path={`/b/${p.name}`} label="Share this profile on X" />
+        <ShareOnX
+          text={`${p.name}'s track record on Bizzy-Fy: ${p.deals} deals paid through escrow on @NEARProtocol, score ${p.score}.`}
+          path={`/b/${p.name}`}
+          label="Share this profile on X"
+        />
       </div>
     </>
   );
