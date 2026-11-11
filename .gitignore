@@ -7,3 +7,4 @@ CLAUDE.local.md
 .claude/settings.local.json
 *.db
 *.db-*
+!frontend/.env.example
