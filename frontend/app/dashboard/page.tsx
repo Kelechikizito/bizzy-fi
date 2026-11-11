@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AgentBrief, AskAgent } from "@/components/agent";
+import { ConnectAi } from "@/components/connect-ai";
 import { Connections } from "@/components/connections";
 import { ShareOnX } from "@/components/share";
 import { Treasury } from "@/components/treasury";
@@ -180,6 +181,8 @@ export default function Dashboard() {
       </section>
 
       <AskAgent company={id} cap={Number(toNear(data.limits.per_deal_cap).replace(/,/g, ""))} version={data} onDone={() => void reload(id)} />
+
+      <ConnectAi company={id} />
 
       <Treasury company={id} account={account!} busy={!!busy} act={act} />
 

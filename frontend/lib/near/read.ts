@@ -52,7 +52,8 @@ export async function loadDashboard(id: string) {
   return { company: company!, score, available, spent, limits, status, agentKey, unfreezeAt: Number(BigInt(unfreezeAt) / 1_000_000n), approvals, deals };
 }
 
-async function myDeals(id: string) {
+/** Every escrow deal `id` is buying or selling in, newest first. */
+export async function myDeals(id: string) {
   const all: [string, Deal][] = [];
   for (let from_index = 0; ; from_index += 100) {
     const page = (await reader.view<[string, Deal][]>(ESCROW_ID, "get_deals", { from_index, limit: 100 })) ?? [];
