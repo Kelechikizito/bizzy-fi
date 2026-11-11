@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AgentBrief, AskAgent } from "@/components/agent";
 import { Connections } from "@/components/connections";
+import { ShareOnX } from "@/components/share";
 import { Treasury } from "@/components/treasury";
 import { Button, Frame, Problem, Receipt } from "@/components/ui";
 import { WorldIdButton } from "@/components/world-id";
@@ -104,6 +105,12 @@ export default function Dashboard() {
         <div>
           <h1 className="font-display text-4xl font-bold tracking-tight">{id.split(".")[0]}</h1>
           <p className="mt-1 text-muted">{data.company.about}</p>
+          <p className="mt-2 flex flex-wrap gap-4 text-sm">
+            <Link href={`/b/${id.split(".")[0]}`} className="text-muted underline underline-offset-4 hover:text-ink">
+              Your public profile
+            </Link>
+            <ShareOnX text={`My business ${id.split(".")[0]} now has an AI agent that buys for it, with the money held on @NEARProtocol until delivery.`} path={`/b/${id.split(".")[0]}`} />
+          </p>
         </div>
         <div className="flex items-center gap-3 text-sm">
           <span className="rounded-full border border-rule px-3 py-1">Score {data.score}</span>

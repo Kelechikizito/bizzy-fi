@@ -1,6 +1,7 @@
 "use client";
 // "Ask your agent", the private negotiations it ran, and the private notes it sells by.
 import { useCallback, useEffect, useState } from "react";
+import { ShareOnX } from "@/components/share";
 import { Button, Problem, Receipt } from "@/components/ui";
 import { api } from "@/lib/wallet";
 
@@ -134,6 +135,9 @@ function Summary({ n, company }: { n: Negotiation; company: string }) {
         <p className="mt-2 flex gap-4">
           {n.receipts.opened && <Receipt hash={n.receipts.opened} label="Money locked" />}
           {n.receipts.accepted && <Receipt hash={n.receipts.accepted} label="Seller agreed" />}
+          {n.status === "opened" && n.proof.verified && (
+            <ShareOnX text={`My AI agent just closed a deal with ${other}'s agent in ${n.turns.length} moves. Negotiated privately in sealed hardware, money held on @NEARProtocol until delivery.`} path={`/b/${short(company)}`} />
+          )}
         </p>
       )}
     </li>
