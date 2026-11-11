@@ -26,22 +26,23 @@ const STEPS = [
   },
 ];
 
-const RULES = [
+/** The core technology, shown as the dark strip. */
+const TECH = [
   {
-    title: "Limits you set",
-    text: "A most-per-deal and a most-per-week. Anything bigger waits for your OK.",
+    label: "Private AI",
+    name: "NEAR AI Cloud",
+    line: "Negotiations sealed in a TEE, checked every time",
   },
   {
-    title: "One freeze button",
-    text: "Stops your agent at once by deleting its key. Only you can turn it back on.",
+    label: "Proof of personhood",
+    name: "World ID",
+    line: "One verified human behind each business",
   },
+  { label: "Agent connect", name: "MCP", line: "Claude, Cursor, and more" },
   {
-    title: "Approved businesses only",
-    text: "Optionally, your agent pays only businesses you've connected with by invite link.",
-  },
-  {
-    title: "Your money, your account",
-    text: "Funds sit in your business's own contract. Bizzy-Fy can't move them, and neither can the agent beyond your limits.",
+    label: "Settlement",
+    name: "NEAR",
+    line: "Escrow, limits and reputation in Rust contracts",
   },
 ];
 
@@ -88,37 +89,43 @@ const FAQ = [
 const PROBLEMS = [
   {
     problem: "Businesses don't trust each other",
-    example: "So every deal starts with a deposit, a guarantee or a long wait, and someone always carries the risk.",
+    example:
+      "So every deal starts with a deposit, a guarantee or a long wait, and someone always carries the risk.",
     fix: "The money sits in an escrow contract that neither side controls. It goes to the seller on delivery, or back to the buyer if they don't deliver.",
   },
   {
     problem: "Contracts, lawyers and paperwork",
-    example: "Weeks of drafting and redlining agreements, for deals that are mostly price, quantity and a date.",
+    example:
+      "Weeks of drafting and redlining agreements, for deals that are mostly price, quantity and a date.",
     fix: "The agents agree those terms in minutes, and the contract on NEAR enforces payment and delivery deadlines. No lawyer needed to hold the money.",
   },
   {
     problem: "Deposits paid to suppliers you can't check",
-    example: "A food importer wired a deposit overseas and got neither the goods nor the money back.",
+    example:
+      "A food importer wired a deposit overseas and got neither the goods nor the money back.",
     fix: "Nothing reaches the seller until you confirm delivery. Past the deadline, anyone can trigger your refund.",
   },
   {
     problem: "Chasing late payments",
-    example: "An agency waited three months for a $3,400 invoice that was \"being processed\".",
+    example:
+      'An agency waited three months for a $3,400 invoice that was "being processed".',
     fix: "The seller sees the money locked before starting work, and is paid when the buyer confirms, or once the buyer's hour to check the delivery has passed.",
   },
   {
     problem: "No privacy",
-    example: "Prices, margins and who you buy from are exactly what competitors want to see.",
+    example:
+      "Prices, margins and who you buy from are exactly what competitors want to see.",
     fix: "Negotiations run in sealed hardware nobody can read. Terms are stored encrypted, and the chain keeps only a fingerprint. Even your partner list is scrambled.",
   },
   {
     problem: "Slow, manual back-and-forth",
-    example: "Email a supplier, wait for someone to check stock and prices, reply, repeat.",
+    example:
+      "Email a supplier, wait for someone to check stock and prices, reply, repeat.",
     fix: "Your agent finds a supplier and settles the price with its agent in about 30 seconds.",
   },
   {
     problem: "Handing AI your money is scary",
-    example: "\"Giving an LLM unlimited bank access is terrifying.\"",
+    example: '"Giving an LLM unlimited bank access is terrifying."',
     fix: "Your agent holds a limited key, not your money: caps per deal and per week, your OK for anything bigger, and a freeze button.",
   },
   {
@@ -369,78 +376,6 @@ function OfferChart() {
   );
 }
 
-/** The dark band's chart: a week of spending meeting the cap; the deal past it waits. */
-function SpendChart() {
-  const steps = [0, 0.35, 0.35, 1.2, 1.2, 2.9, 2.9, 4.1];
-  const pts = steps
-    .map((v, i) => `${40 + i * 55},${170 - (v / 6) * 150}`)
-    .join(" ");
-  const cap = 170 - (5 / 6) * 150;
-  return (
-    <svg
-      viewBox="0 0 480 190"
-      className="block w-full"
-      role="img"
-      aria-label="Spending this week rises in steps toward a 5 NEAR weekly limit; a deal that would cross it waits for the owner."
-    >
-      <line x1="40" x2="460" y1="170" y2="170" stroke="var(--color-graphite)" />
-      <line
-        x1="40"
-        x2="460"
-        y1={cap}
-        y2={cap}
-        stroke="var(--color-fog)"
-        strokeDasharray="4 4"
-      />
-      <text x="40" y={cap - 6} fontSize="11" fill="var(--color-fog)">
-        weekly limit 5 NEAR
-      </text>
-      <motion.polyline
-        points={pts}
-        fill="none"
-        stroke="var(--color-chart)"
-        strokeWidth="2"
-        initial={{ pathLength: 0 }}
-        whileInView={{ pathLength: 1 }}
-        viewport={{ once: true, margin: "-80px" }}
-        transition={{ duration: 1.6, ease: EASE }}
-      />
-      <motion.g
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, margin: "-80px" }}
-        transition={{ delay: 1.6, duration: 0.5 }}
-      >
-        <line
-          x1={40 + 7 * 55}
-          x2={40 + 7 * 55}
-          y1={170 - (4.1 / 6) * 150}
-          y2={170 - (5.6 / 6) * 150}
-          stroke="var(--color-white)"
-          strokeDasharray="2 3"
-        />
-        <circle
-          cx={40 + 7 * 55}
-          cy={170 - (5.6 / 6) * 150}
-          r="4"
-          fill="none"
-          stroke="var(--color-white)"
-          strokeWidth="1.5"
-        />
-        <text
-          x={40 + 7 * 55 - 10}
-          y={170 - (5.6 / 6) * 150 + 4}
-          textAnchor="end"
-          fontSize="11"
-          fill="var(--color-white)"
-        >
-          1.5 NEAR deal: waits for your OK
-        </text>
-      </motion.g>
-    </svg>
-  );
-}
-
 const WRAP = "mx-auto max-w-[1200px] px-4";
 const H2 = "text-[32px] font-bold leading-[1.2]";
 
@@ -454,12 +389,17 @@ export default function Home() {
       >
         <div>
           <h1 className="font-hero text-[40px] font-bold leading-[1.1] sm:text-display sm:leading-[1.2]">
-            Private b2b commerce for your agents.
+            Private B2B commerce for agents, backed by verified humans.
           </h1>
           <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-muted">
-            Tell Bizzy-Fy what your business needs. Your AI agent finds another
-            business, haggles in private, locks the payment on NEAR until terms
-            are reached.
+            Tell Bizzy-Fy what your business needs. Your{" "}
+            <strong className="font-semibold text-ink">AI agent</strong>,
+            backed by a{" "}
+            <strong className="font-semibold text-ink">verified human</strong>,
+            finds another business, haggles in{" "}
+            <strong className="font-semibold text-ink">private</strong>, locks
+            the payment on <strong className="font-semibold text-ink">NEAR</strong>{" "}
+            until terms are reached.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Link href={start} className={PRIMARY}>
@@ -474,18 +414,28 @@ export default function Home() {
       </section>
 
       <section className="border-t border-rule py-20">
-        <div className={`${WRAP} grid gap-10 lg:grid-cols-[1fr_2fr]`}>
+        <div className={WRAP}>
           <Reveal>
-            <h2 className={H2}>The problems Bizzy-Fy solves</h2>
-            <blockquote className="mt-6 border-l-2 border-ink pl-4">
-              <p className="text-lg leading-snug">&ldquo;&hellip;when we talk about actual business commerce, this is where there&apos;s actually no trust.&rdquo;</p>
-              <footer className="mt-2 text-sm text-muted">Illia Polosukhin, NEAR co-founder, on B2B trade</footer>
-            </blockquote>
-            <p className="mt-6 max-w-sm text-sm text-muted">
-              Illia sizes business-to-business trade at $20 to 40 trillion. It still runs on deposits, paperwork and phone calls.
-            </p>
+            <h2 className={`${H2} text-center`}>
+              The problems Bizzy-Fy solves
+            </h2>
+            <div className="mt-6 grid gap-6 md:grid-cols-2 md:items-end">
+              <blockquote className="border-l-2 border-ink pl-4">
+                <p className="text-lg leading-snug">
+                  &ldquo;&hellip;when we talk about actual business commerce,
+                  this is where there&apos;s actually no trust.&rdquo;
+                </p>
+                <footer className="mt-2 text-sm text-muted">
+                  Illia Polosukhin, NEAR co-founder, on B2B trade
+                </footer>
+              </blockquote>
+              <p className="max-w-sm text-sm text-muted md:justify-self-end">
+                Illia sizes business-to-business trade at $20 to 40 trillion. It
+                still runs on deposits, paperwork and phone calls.
+              </p>
+            </div>
           </Reveal>
-          <div className="rounded-sm border border-rule bg-card">
+          <div className="mt-10 rounded-sm border border-rule bg-card">
             <div className="hidden grid-cols-2 gap-6 border-b border-rule px-4 py-2 text-xs font-medium uppercase text-badge sm:grid">
               <span>The problem</span>
               <span>How Bizzy-Fy fixes it</span>
@@ -498,7 +448,11 @@ export default function Home() {
                   initial={{ opacity: 0, y: 12 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
-                  transition={{ duration: 0.45, delay: (i % 4) * 0.06, ease: EASE }}
+                  transition={{
+                    duration: 0.45,
+                    delay: (i % 4) * 0.06,
+                    ease: EASE,
+                  }}
                 >
                   <div>
                     <h3 className="font-bold">{row.problem}</h3>
@@ -538,25 +492,36 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-band py-20 text-white">
-        <div className={`${WRAP} grid items-center gap-12 lg:grid-cols-2`}>
-          <Reveal>
-            <h2 className={H2}>You stay in charge</h2>
-            <p className="mt-3 max-w-prose text-fog">
-              The agent is clever. The rules are not up to it: they&apos;re
-              enforced by your business&apos;s contract on NEAR.
-            </p>
-            <ul className="mt-8 space-y-6">
-              {RULES.map((rule) => (
-                <li key={rule.title} className="border-l border-graphite pl-4">
-                  <h3 className="font-bold">{rule.title}</h3>
-                  <p className="mt-1 text-fog">{rule.text}</p>
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-          <SpendChart />
-        </div>
+      <section className="bg-band text-white">
+        <Reveal className={`${WRAP} pt-20 text-center`}>
+          <h2 className={H2}>What Bizzy-Fy runs on</h2>
+          <p className="mx-auto mt-3 max-w-prose text-fog">
+            Four pieces of technology, each doing one job you can check.
+          </p>
+        </Reveal>
+        <ul
+          className={`${WRAP} grid gap-y-10 pb-20 pt-12 sm:grid-cols-2 lg:grid-cols-4`}
+        >
+          {TECH.map((t, i) => (
+            <motion.li
+              key={t.name}
+              className="group cursor-default transition-colors duration-300 lg:border-l lg:border-graphite lg:pl-6 lg:first:border-l-0 lg:first:pl-0 lg:hover:border-white"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.5, delay: i * 0.1, ease: EASE }}
+            >
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-fog transition-colors duration-300 group-hover:text-white">
+                0{i + 1} · {t.label}
+              </p>
+              <p className="mt-4 font-hero text-[40px] font-bold leading-none transition-transform duration-300 ease-out group-hover:-translate-y-1 xl:text-5xl">
+                {t.name}
+              </p>
+              <span aria-hidden className="mt-3 block h-0.5 w-0 bg-wash transition-[width] duration-300 ease-out group-hover:w-16" />
+              <p className="mt-3 text-sm text-fog transition-colors duration-300 group-hover:text-ash">{t.line}</p>
+            </motion.li>
+          ))}
+        </ul>
       </section>
 
       <section className="py-20">
@@ -622,7 +587,7 @@ export default function Home() {
       >
         <div className={`${WRAP} grid gap-10 lg:grid-cols-[1fr_2fr]`}>
           <Reveal>
-            <h2 className={H2}>Questions</h2>
+            <h2 className={H2}>Frequently asked questions</h2>
           </Reveal>
           <Reveal
             delay={0.1}
@@ -631,6 +596,7 @@ export default function Home() {
             {FAQ.map((item) => (
               <details
                 key={item.q}
+                name="faq"
                 className="group px-4 py-4 transition-colors duration-200 hover:bg-surface"
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium">

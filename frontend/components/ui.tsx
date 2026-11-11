@@ -63,7 +63,7 @@ export function Frame({ children, wide, bare }: { children: ReactNode; wide?: bo
               Top businesses
             </Link>
             <Link href="/#faq" className="block hover:text-white">
-              Questions
+              Frequently asked questions
             </Link>
           </div>
           <div className="space-y-2">
