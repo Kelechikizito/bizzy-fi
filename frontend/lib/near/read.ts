@@ -9,6 +9,7 @@ export type Company = {
   guardian: string;
   about: string;
   human: boolean;
+  kyb: boolean;
   referrals: number;
   reputation: { on_time: number; late: number; disputes_won: number; disputes_lost: number; counterparties: number; volume: string };
 };

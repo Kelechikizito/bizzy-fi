@@ -7,6 +7,7 @@ import { ShareOnX } from "@/components/share";
 import { Frame } from "@/components/ui";
 import { accountUrl } from "@/lib/near/contracts";
 import { loadProfile } from "@/lib/near/profile";
+import { contactLinks, getContacts } from "@/lib/server/contacts";
 
 export async function generateMetadata({ params }: PageProps<"/b/[name]">): Promise<Metadata> {
   const { name } = await params;
@@ -26,6 +27,13 @@ export default function Page({ params }: PageProps<"/b/[name]">) {
 async function Profile({ params }: { params: PageProps<"/b/[name]">["params"] }) {
   const p = await loadProfile((await params).name);
   if (!p) notFound();
+  const contacts = contactLinks(await getContacts(p.id));
+  const quests = [
+    { done: p.human, text: "Verified human", how: "World ID" },
+    { done: p.kyb, text: "Business check", how: p.kyb ? "KYB" : "coming next: a third-party KYB provider" },
+    { done: p.deals > 0, text: "First deal paid", how: "through escrow" },
+    { done: p.referrals > 0, text: "Brought in a business", how: `${p.referrals} so far` },
+  ];
   const stats = [
     { label: "Score", value: p.score },
     { label: "Deals paid", value: p.deals },
@@ -59,6 +67,43 @@ async function Profile({ params }: { params: PageProps<"/b/[name]">["params"] })
         </a>
         . Prices and what was bought stay private.
       </p>
+
+      <section className="mt-10 grid gap-10 sm:grid-cols-2">
+        <div>
+          <h2 className="font-display text-xl font-bold">Proof of reputation</h2>
+          <ul className="mt-3 space-y-2">
+            {quests.map((q) => (
+              <li key={q.text} className={q.done ? "" : "text-muted"}>
+                <span aria-hidden className="mr-2 inline-block w-4 text-center">
+                  {q.done ? "✓" : "○"}
+                </span>
+                {q.text} <span className="text-sm text-muted">({q.how})</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        {contacts.length > 0 && (
+          <div>
+            <h2 className="font-display text-xl font-bold">Contact</h2>
+            <dl className="mt-3 space-y-2">
+              {contacts.map((c) => (
+                <div key={c.label} className="flex gap-3">
+                  <dt className="w-20 shrink-0 text-sm text-muted">{c.label}</dt>
+                  <dd className="min-w-0 break-words">
+                    {c.href ? (
+                      <a href={c.href} target="_blank" rel="noreferrer nofollow" className="underline underline-offset-4">
+                        {c.text}
+                      </a>
+                    ) : (
+                      c.text
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+      </section>
 
       <div className="mt-10 flex flex-wrap items-center gap-6">
         <Link href={`/login?ref=${p.name}`} className="rounded-lg bg-ink px-6 py-3 font-medium text-paper hover:bg-ink/90">

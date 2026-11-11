@@ -13,6 +13,7 @@ export async function loadProfile(name: string) {
     name,
     about: company.about,
     human: company.human,
+    kyb: company.kyb,
     score: score ?? 0,
     deals: r.on_time + r.late,
     onTime: r.on_time,

@@ -103,3 +103,11 @@ test("the CPU quote must carry the signing key and our nonce", async () => {
   assert.equal(quoteBinds(quote, address, "ce".repeat(32)), false);
   assert.equal(quoteBinds(quote, `0x${"ac".repeat(20)}`, nonce), false);
 });
+
+test("contact links only use safe prefixes", async () => {
+  const { contactLinks } = await import("./contacts.ts");
+  const links = contactLinks({ website: "javascript:alert(1)", x: "@shop<script>", telegram: "shop", email: "a@b.co", phone: "+234 (80) 1" });
+  for (const l of links) if (l.href) assert.match(l.href, /^(https:\/\/|mailto:|tel:)/);
+  assert.equal(links.find((l) => l.label === "X")?.href, "https://x.com/shopscript");
+  assert.equal(links.find((l) => l.label === "Phone")?.href, "tel:+234801");
+});
