@@ -44,7 +44,7 @@ Deadline: **2026-11-14 23:59 UTC**.
 - [x] 15: Deal pages end to end (Claude)
 - [x] 16: Direct connections (contract already had it; Claude: UI)
 - [ ] ~~17: Netting~~ skipped (README lists it as next)
-- [ ] 18: Security audit pass
+- [x] 18: Security audit pass (M3, L3 fixed in code, not deployed)
 - [ ] 19: Profile, referral, share card, landing, hosted deploy (Claude)
 - [ ] 20: README (Claude)
 - [ ] 21: Demo video and X post
