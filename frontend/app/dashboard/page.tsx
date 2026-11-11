@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { AgentBrief, AskAgent } from "@/components/agent";
 import { ConnectAi } from "@/components/connect-ai";
 import { Connections } from "@/components/connections";
+import { DirectDeal } from "@/components/direct-deal";
+import { ProfileContacts } from "@/components/profile-contacts";
 import { ShareOnX } from "@/components/share";
 import { Treasury } from "@/components/treasury";
 import { Button, Frame, Problem, Receipt } from "@/components/ui";
@@ -182,6 +184,8 @@ export default function Dashboard() {
 
       <AskAgent company={id} cap={Number(toNear(data.limits.per_deal_cap).replace(/,/g, ""))} version={data} onDone={() => void reload(id)} />
 
+      <DirectDeal company={id} onDone={() => void reload(id)} />
+
       <ConnectAi company={id} />
 
       <Treasury company={id} account={account!} busy={!!busy} act={act} />
@@ -225,7 +229,7 @@ export default function Dashboard() {
                     {d.buyer === id ? `Buying from ${d.seller}` : `Selling to ${d.buyer}`}
                     <span className="ml-2 font-medium">{toNear(d.amount)} NEAR</span>
                   </span>
-                  <span className="text-muted underline-offset-4">{STATUS[d.status] ?? d.status} ›</span>
+                  <span className="text-muted underline-offset-4">{d.status === "Proposed" && d.seller === id ? "Waiting for you to accept" : (STATUS[d.status] ?? d.status)} ›</span>
                 </Link>
               </li>
             ))}
@@ -251,6 +255,7 @@ export default function Dashboard() {
       />
       <Connections company={id} busy={!!busy} act={act} version={data} />
       <AgentBrief company={id} />
+      <ProfileContacts company={id} />
       <p className="mt-10 text-sm text-muted">
         Your business address is {id}. Your score comes from the {REGISTRY_ID} directory.
       </p>

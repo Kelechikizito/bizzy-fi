@@ -1,6 +1,6 @@
 import { requireGuardian } from "@/lib/server/auth";
 import { connect, connections, inviteCode, inviter } from "@/lib/server/connections";
-import { DEMO_SELLERS } from "@/lib/server/deals";
+import { DEMO_SELLERS } from "@/lib/server/demo";
 import { HttpError } from "@/lib/server/http";
 import { handle } from "@/lib/server/route";
 

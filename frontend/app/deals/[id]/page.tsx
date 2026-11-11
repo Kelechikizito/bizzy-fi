@@ -21,6 +21,7 @@ const SETTLED: Record<string, string> = {
   release_due: "The review time ran out, so the seller was paid.",
   refund_on_timeout: "The dispute time ran out, so it was settled by the rules.",
   mark_delivered: "The seller marked it delivered.",
+  accept_deal: "The seller accepted.",
 };
 
 const short = (id: string) => id.split(".")[0];
@@ -102,7 +103,9 @@ function DealPage() {
   const myOffer = deal.split_offer && deal.split_offer[0] === view.company ? deal.split_offer[1] : null;
 
   const next: Record<string, string> = {
-    Proposed: buying ? `Waiting for ${other} to accept. You can still cancel and get the money back.` : "Your agent will accept this once the buyer's limits allow it.",
+    Proposed: buying
+      ? `The money is locked. Waiting for ${other} to accept: send them this page's link. You can still cancel and get the money back.`
+      : `${other} locked ${toNear(deal.amount)} NEAR for these terms. Accept to start; you're paid once they confirm delivery.`,
     Accepted: `${buying ? other : "You"} must deliver by ${when(ms(deal.deliver_by))}. If not, the buyer gets the money back.`,
     Delivered: inReview
       ? `${buying ? "You have" : `${other} has`} until ${when(reviewEnds)} to check it. If nothing happens, the seller is paid then.`
@@ -147,6 +150,11 @@ function DealPage() {
           {buying && deal.status === "Proposed" && (
             <Button variant="plain" disabled={!!busy} onClick={() => void move("Deal cancelled", "cancel")}>
               Cancel and get money back
+            </Button>
+          )}
+          {!buying && deal.status === "Proposed" && (
+            <Button disabled={!!busy} onClick={() => void move("Deal accepted", "accept_deal", { terms_hash: deal.terms_hash })}>
+              Accept these terms
             </Button>
           )}
           {!buying && deal.status === "Accepted" && (

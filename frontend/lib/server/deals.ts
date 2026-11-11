@@ -3,9 +3,10 @@ import "server-only";
 import { ESCROW_ID, REGISTRY_ID } from "../near/contracts.ts";
 import { requireAccount } from "./auth.ts";
 import { HttpError } from "./http.ts";
+import { DEMO_SELLERS } from "./demo.ts";
 import { dueAction } from "./keeper.ts";
 import { agentSigner, call, keeperSigner, reader, send } from "./near.ts";
-import { byTermsHash, type Offer } from "./negotiate.ts";
+import { accept, byTermsHash, type Offer } from "./negotiate.ts";
 import { readTerms } from "./terms.ts";
 
 export type Deal = {
@@ -22,8 +23,6 @@ export type Deal = {
   disputed_after_delivery: boolean;
 };
 
-/** Demo businesses with no person behind them; a buyer may ask them to deliver at once. */
-export const DEMO_SELLERS = ["cups.bizzy-fy.testnet", "cafe.bizzy-fy.testnet"];
 
 const getDeal = async (id: string) => {
   const deal = await reader.view<Deal | null>(ESCROW_ID, "get_deal", { id });
@@ -44,6 +43,11 @@ export async function openDeal(id: string, demoDeliver = false) {
   const due = dueAction(deal, BigInt(Date.now()) * 1_000_000n);
   if (due) {
     settled = { method: due, tx: await send(keeperSigner(), ESCROW_ID, due, { id }) };
+    deal = await getDeal(id);
+  }
+  // Demo businesses have no person to press Accept, so their agent accepts once the money is locked.
+  if (deal.status === "Proposed" && DEMO_SELLERS.includes(deal.seller)) {
+    settled = { method: "accept_deal", tx: await accept(await agentSigner(deal.seller), id, deal.terms_hash) };
     deal = await getDeal(id);
   }
   if (demoDeliver) {

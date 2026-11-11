@@ -10,12 +10,12 @@ import { agentSigner, call, reader } from "./near.ts";
 import { saveTerms } from "./terms.ts";
 
 const MAX_TURNS = 8;
-const MIN_DEAL = 0.1;
-const DAY_NS = 86_400_000_000_000n;
+export const MIN_DEAL = 0.1;
+export const DAY_NS = 86_400_000_000_000n;
 /** Enough for open_deal, the escrow and the callback. */
-const OPEN_GAS = "60 Tgas";
+export const OPEN_GAS = "60 Tgas";
 /** Kept back for the fee NEAR holds while the deal opens. */
-const FEE_RESERVE = 0.07;
+export const FEE_RESERVE = 0.07;
 
 export type Offer = { action: "offer" | "accept" | "walk_away"; item: string; quantity: number; price_near: number; delivery_days: number; note: string };
 type Side = "buyer" | "seller";
@@ -118,7 +118,8 @@ export async function negotiate(buyer: string, request: string, max: number, cho
   const attested = attest().catch(() => ({ nonce: "", address: null, gpu: false, bound: false }));
   const replies: Reply[] = [];
   // With "only businesses I approve", the agent shops among approved connections and proves each with its salt.
-  const limits = await reader.view<{ allowlist_only: boolean }>(buyer, "get_limits");
+  const [limits, status] = await Promise.all([reader.view<{ allowlist_only: boolean }>(buyer, "get_limits"), reader.view<string>(buyer, "get_status")]);
+  if (status !== "Active") throw new HttpError(400, "Your agent is frozen. Turn it back on first.");
   const approved = limits?.allowlist_only ? (await connections(buyer)).filter((c) => c.approved) : null;
   if (approved?.length === 0) throw new HttpError(400, "Your agent may only pay businesses you approve. Connect with one under Businesses you trade with.");
   const seller = chosen || (await pickSeller(buyer, request, replies, approved?.map((c) => c.other)));
@@ -174,7 +175,7 @@ async function openDeal(record: Omit<Negotiation, "id">, agreed: Offer, buyerAge
 }
 
 /** The seller's agent accepts deal `id` with the agreed fingerprint, and we confirm the escrow shows it. */
-async function accept(sellerAgent: Awaited<ReturnType<typeof agentSigner>>, id: string, termsHash: string): Promise<string> {
+export async function accept(sellerAgent: Awaited<ReturnType<typeof agentSigner>>, id: string, termsHash: string): Promise<string> {
   const { hash } = await call(sellerAgent, sellerAgent.id, "deal_action", { method: "accept_deal", args: { id, terms_hash: termsHash } });
   const deal = await reader.view<{ status: string }>(ESCROW_ID, "get_deal", { id });
   if (deal?.status !== "Accepted") throw new Error("The seller's agent couldn't accept. Is it frozen?");
