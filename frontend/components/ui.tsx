@@ -16,11 +16,16 @@ export function Frame({ children, wide }: { children: ReactNode; wide?: boolean 
           <Link href="/" className="font-display text-xl font-bold tracking-tight">
             bizzy-fy
           </Link>
-          {account && (
-            <button onClick={() => void signOut().then(() => router.push("/"))} className="text-sm text-muted underline-offset-4 hover:underline">
-              Sign out
-            </button>
-          )}
+          <nav className="flex items-center gap-5 text-sm text-muted">
+            <Link href="/top" className="underline-offset-4 hover:underline">
+              Top businesses
+            </Link>
+            {account && (
+              <button onClick={() => void signOut().then(() => router.push("/"))} className="underline-offset-4 hover:underline">
+                Sign out
+              </button>
+            )}
+          </nav>
         </div>
       </header>
       <main className={`mx-auto px-4 py-10 ${wide ? "max-w-4xl" : "max-w-xl"}`}>{children}</main>
