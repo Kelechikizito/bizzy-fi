@@ -34,12 +34,11 @@ Claude wrote the pages. You put the site on Vercel (steps below).
 
 3. **Environment variables** (Settings → Environment Variables). Copy each value from your `frontend/.env.local`; never paste them in chat:
 
-   `MASTER_KEY`, `CRON_SECRET`, `ATTESTER_KEY`, `KEEPER_KEY`, `SPONSOR_KEY`, `NEAR_AI_API_KEY`, `NEXT_PUBLIC_PRIVY_APP_ID`, `WORLD_APP_ID`, `WORLD_RP_ID`, `WORLD_SIGNING_KEY`, `WORLD_ENVIRONMENT`, plus the two new ones: `DATABASE_URL`, `DATABASE_TOKEN`.
+   `MASTER_KEY`, `CRON_SECRET`, `ATTESTER_KEY`, `KEEPER_KEY`, `SPONSOR_KEY`, `NEAR_AI_API_KEY`, `WORLD_APP_ID`, `WORLD_RP_ID`, `WORLD_SIGNING_KEY`, `WORLD_ENVIRONMENT`, plus the two new ones: `DATABASE_URL`, `DATABASE_TOKEN`.
 
    Optional: `NEXT_PUBLIC_SITE_URL` if you add your own domain. Without it, share cards use Vercel's production address automatically.
 4. **Deploy.**
 5. **Allow the new address:**
-   - in the Privy dashboard, add your Vercel URL to the allowed domains;
    - in the World ID developer portal, update the app's URL if it asks for one.
 6. **Load the demo businesses into the hosted database** (from your machine, once):
 

@@ -31,7 +31,7 @@ export async function logIn(nonce: string, signed: SignedMessage): Promise<strin
     args: [nonce, Date.now()],
   });
   if (!rows[0]) throw new HttpError(401, "Sign-in expired. Please try again.");
-  // A brand-new account named after its own key (Privy) has no keys on chain yet, so the signature alone proves it.
+  // A brand-new account named after its own key (an implicit account from a wallet) has no keys on chain yet, so the signature alone proves it.
   const fresh = signed.accountId === implicitId(signed.publicKey) && !(await reader.accountExists(signed.accountId));
   const valid = await verifyNep413Signature(
     signed,

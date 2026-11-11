@@ -24,7 +24,7 @@ Stack: Next.js 16, React 19, Tailwind v4 (no PostCSS config; tokens live in `app
 | `components/`                              | **Yes**              | `ui.tsx` (Frame, Button, Receipt, Problem), `world-id.tsx`, `treasury.tsx`, `agent.tsx`, `connections.tsx`, `share.tsx` (Post on X), `connect-ai.tsx` (MCP key + setup) |
 | `app/globals.css`, `app/layout.tsx`        | **Yes**              | Colours, fonts                                                             |
 | `lib/near/read.ts`, `lib/near/treasury.ts` | Read only, ask first | Reads from the chain                                                       |
-| `lib/wallet.tsx`                           | Don't change         | Login and signing (Privy + NEAR wallets)                                   |
+| `lib/wallet.tsx`                           | Don't change         | Login and signing (NEAR wallets via NEAR Connect)                                   |
 | `lib/server/`, `app/api/`                  | Don't change         | Backend: sessions, keys, World ID                                          |
 
 ## The helpers pages use
@@ -34,7 +34,6 @@ const {
   account,
   busy,
   error,
-  signInWithPrivy,
   signInWithWallet,
   signOut,
   send,
@@ -60,7 +59,7 @@ Reads (no login needed):
 | Page         | Shows                                                                                                         | Actions (what `send` calls)                                                                                                                             |
 | ------------ | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/`          | Placeholder; real landing page is checkpoint 19                                                               | Get started                                                                                                                                             |
-| `/login`     | One Privy button + "I already have a NEAR account"                                                            | `signInWithPrivy`, `signInWithWallet`                                                                                                                   |
+| `/login`     | One "Connect a NEAR wallet" button                                                                            | `signInWithWallet`                                                                                                                   |
 | `/start`     | 7 steps with a step list                                                                                      | Open business: `create_company` on the registry. Prove human: `<WorldIdButton>`. Turn on agent: `/api/companies/[id]/agent-key` then `set_agent_key`    |
 | `/` | Landing: real negotiation hero, how a deal goes, safety rules, FAQ | none |
 | `/b/[name]` | Public profile: score and track record from the registry, share card (`opengraph-image.tsx`) | none (reads only) |
@@ -105,4 +104,4 @@ Colours in `app/globals.css`: `paper #e9efec` (background), `card #f6f9f7`, `ink
 
 ## Test accounts
 
-Demo businesses `cafe.bizzy-fy.testnet` and `cups.bizzy-fy.testnet` already have data. To see a fresh sign-up, log in with a new Google or email account: it gets 1 free test NEAR.
+Demo businesses `cafe.bizzy-fy.testnet` and `cups.bizzy-fy.testnet` already have data. To see a fresh sign-up, sign in with a new NEAR testnet wallet: it gets 1 free test NEAR.

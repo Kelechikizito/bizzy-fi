@@ -5,28 +5,44 @@ import { findCompany } from "@/lib/near/read";
 import { useSession } from "@/lib/wallet";
 
 export default function Login() {
-  const { account, busy, error, signInWithPrivy, signInWithWallet } = useSession();
+  const { account, busy, error, signInWithWallet } = useSession();
 
   // Once signed in, go to the dashboard, or to sign-up if there's no business yet.
   useEffect(() => {
     if (!account) return;
-    void findCompany(account).then((company) => location.replace(company ? "/dashboard" : `/start${location.search}`));
+    void findCompany(account).then((company) =>
+      location.replace(company ? "/dashboard" : `/start${location.search}`),
+    );
   }, [account]);
 
   return (
     <Frame>
-      <h1 className="font-display text-4xl font-bold">Sign in or create an account</h1>
-      <p className="mt-3 text-muted">No wallet or app needed. We make a secure account for you.</p>
-      <Button onClick={signInWithPrivy} disabled={busy || !!account} className="mt-8 w-full py-4 text-lg">
-        {busy || account ? "Signing you in…" : "Continue with Google, email or passkey"}
-      </Button>
-      <button
+      <h1 className="font-display text-4xl font-bold">
+        Sign in with your NEAR wallet
+      </h1>
+      <p className="mt-3 text-muted">
+        Pick any NEAR wallet, such as HOT, Meteor or MyNearWallet. It asks you
+        to sign one message to prove the account is yours. That costs nothing.
+      </p>
+      <Button
         onClick={() => void signInWithWallet()}
         disabled={busy || !!account}
-        className="mt-6 text-sm text-muted underline underline-offset-4 disabled:opacity-40"
+        className="mt-8 w-full py-4 text-lg"
       >
-        I already have a NEAR account
-      </button>
+        {busy || account ? "Signing you in…" : "Connect a NEAR wallet"}
+      </Button>
+      <p className="mt-6 text-sm text-muted">
+        No wallet yet?{" "}
+        <a
+          href="https://wallet.meteorwallet.app"
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-4 hover:text-ink"
+        >
+          Make a free one with Meteor
+        </a>{" "}
+        in a minute, then come back.
+      </p>
       <Problem text={error} />
     </Frame>
   );

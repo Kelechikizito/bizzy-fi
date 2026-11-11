@@ -10,7 +10,7 @@ bizzy-fi is a NEAR HACKATHON entry: agentic B2B commerce, where AI agents negoti
 
 - **Private by default**: every feature keeps user data and deal terms private unless the user explicitly chooses to share.
 - **One-click UX for beginners**: aim for Amazon-style one-click actions. Hide crypto jargon, seed phrases, and chain details from users.
-- **Login**: model sign-up and login on how near.com does it, and support social and Google login (Privy-style). Don't require an existing wallet.
+- **Login**: model sign-up and login on how near.com does it, and support social and Google login. Don't require an existing wallet. (Privy was tried and removed on 11 Nov 2026; sign-in is NEAR wallets only for now.)
 - **Referrals**: every user automatically gets a referral link to invite new users.
 - **Shareable on X**: design features and results so people will want to post them on X.
 - **Judging criteria**: past NEAR hackathons scored technical implementation, design, impact, originality, and sustainability. Build to these, and cover them in the frontend or FAQ.

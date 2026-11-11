@@ -1,5 +1,7 @@
 # Checkpoint 13: Website shell, sign-up, dashboard, Freeze
 
+> **Update (11 Nov 2026):** Privy was removed. Sign-in is now NEAR wallets only, through NEAR Connect. The Privy parts below are history.
+
 Claude writes this. You do two setup steps (Privy and a sponsor account) and then try it in the browser. No contract changes.
 
 ## Login: what we checked first

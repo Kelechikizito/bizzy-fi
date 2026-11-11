@@ -86,7 +86,7 @@ Our keeper calls these with a key limited to exactly those methods. Every payout
 
 ### The app ([frontend/](frontend))
 
-- **Sign-in:** Privy (Google, email, passkey) creates a NEAR account with no seed phrase; a sponsor sends new accounts 1 test NEAR. Existing NEAR wallets work through NEAR Connect.
+- **Sign-in:** any NEAR wallet through NEAR Connect (HOT, Meteor, MyNearWallet and others), proved by one signed message; a sponsor sends new testnet accounts 1 test NEAR.
 - **Dashboard:** limits, approvals, a freeze button, private seller notes, and a Sputnik DAO team treasury.
 - **Pages:** deal pages with a timeline, disputes and split offers; invite links and QR codes for approved partners; direct deals for terms agreed offline; public profiles at `/b/<name>` with share cards for X; a leaderboard at `/top`.
 - **Bring your own agent:** an MCP endpoint (`/api/mcp`) lets Claude, Cursor or any MCP client act as a business's agent, with exactly the agent's powers.
@@ -131,7 +131,7 @@ The other paths:
 
 Do these on the hosted site or locally (see Quick start):
 
-1. **Sign in** with Google or email, then name your business. You get a NEAR account and a business account with no seed phrase.
+1. **Sign in** with a NEAR testnet wallet (Meteor or HOT make one free), then name your business. You get a business account that holds its own money.
 2. **Add money** (Settings → Add money), for example 0.5 test NEAR.
 3. **Ask your agent:** `100 compostable cups, delivered this week`, up to `0.4`. In about 30 seconds you see "Bought 100 × compostable cups from cups", the **Verified private** badge (open it for the three checks), the moves, and two receipts.
 4. **Open the deal** under Deals. Press **Have cups deliver now (demo)**, then **It arrived: pay cups**. The timeline reaches "Seller paid".

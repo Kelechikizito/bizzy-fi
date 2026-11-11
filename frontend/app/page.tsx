@@ -40,8 +40,8 @@ const TECH = [
   },
   {
     label: "Sign-in",
-    name: "Privy",
-    line: "Google, email or passkey. No wallet or seed phrase",
+    name: "NEAR Connect",
+    line: "Any NEAR wallet: HOT, Meteor, MyNearWallet and more",
   },
   { label: "Agent connect", name: "MCP", line: "Claude, Cursor, and more" },
   {
@@ -78,7 +78,7 @@ const FAQ = [
   },
   {
     q: "Do I need a crypto wallet?",
-    a: "No. Sign in with Google, email or a passkey, and you get a NEAR account automatically. If you already have a NEAR wallet, you can use it.",
+    a: "You need a NEAR wallet to sign in. Any one works, and Meteor or HOT make one free in a minute. On testnet a new account gets 1 free test NEAR to try things.",
   },
   {
     q: "What does it cost?",
@@ -398,13 +398,14 @@ export default function Home() {
           </h1>
           <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-muted">
             Tell Bizzy-Fy what your business needs. Your{" "}
-            <strong className="font-semibold text-ink">AI agent</strong>,
-            backed by a{" "}
+            <strong className="font-semibold text-ink">AI agent</strong>, backed
+            by a{" "}
             <strong className="font-semibold text-ink">verified human</strong>,
             finds another business, haggles in{" "}
             <strong className="font-semibold text-ink">private</strong>, locks
-            the payment on <strong className="font-semibold text-ink">NEAR</strong>{" "}
-            until terms are reached.
+            the payment on{" "}
+            <strong className="font-semibold text-ink">NEAR</strong> until terms
+            are reached.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Link href={start} className={PRIMARY}>
@@ -522,8 +523,13 @@ export default function Home() {
               <p className="mt-4 whitespace-nowrap font-hero text-3xl font-bold leading-none transition-transform duration-300 ease-out group-hover:-translate-y-1 xl:text-[34px]">
                 {t.name}
               </p>
-              <span aria-hidden className="mt-3 block h-0.5 w-0 bg-wash transition-[width] duration-300 ease-out group-hover:w-16" />
-              <p className="mt-3 text-sm text-fog transition-colors duration-300 group-hover:text-ash">{t.line}</p>
+              <span
+                aria-hidden
+                className="mt-3 block h-0.5 w-0 bg-wash transition-[width] duration-300 ease-out group-hover:w-16"
+              />
+              <p className="mt-3 text-sm text-fog transition-colors duration-300 group-hover:text-ash">
+                {t.line}
+              </p>
             </motion.li>
           ))}
         </ul>
@@ -627,8 +633,7 @@ export default function Home() {
             <span className="bg-wash px-1 text-ink">buying</span>.
           </h2>
           <p className="mx-auto mt-3 max-w-prose text-fog">
-            Sign in with Google or email. No wallet, no seed phrase, test money
-            only.
+            Sign in with any NEAR wallet. Test money only.
           </p>
           <Link
             href={start}
