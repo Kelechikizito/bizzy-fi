@@ -24,7 +24,7 @@ async fn milestone_deal_from_start_to_finish() -> testresult::TestResult {
     assert_eq!(opened, json!({ "Opened": { "deal_id": "0" } }));
     assert_eq!(w.deal(0).await?["buyer"], buyer.account.to_string());
 
-    // The seller's agent accepts; each milestone is delivered, confirmed and paid.
+    // The seller's agent accepts; each milestone is delivered, then the buyer's guardian confirms and it's paid.
     let accept = action("accept_deal", 0, json!({ "terms_hash": TERMS }));
     w.agent(&seller, "deal_action", accept)
         .await?
@@ -38,7 +38,8 @@ async fn milestone_deal_from_start_to_finish() -> testresult::TestResult {
         .await?
         .assert_success();
         let before = w.balance(&seller.account).await?;
-        w.agent(&buyer, "deal_action", action("confirm", 0, json!({})))
+        // Paying out is the guardian's call; the agent may not confirm.
+        w.guardian(&buyer, "deal_action", action("confirm", 0, json!({})))
             .await?
             .assert_success();
         assert!(w.balance(&seller.account).await? >= before.saturating_add(near(1)));

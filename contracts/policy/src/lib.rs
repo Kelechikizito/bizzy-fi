@@ -14,8 +14,9 @@ use near_sdk::{
 const MAX_PENDING: u32 = 20;
 /// The only methods the agent's key may call.
 const AGENT_METHODS: &str = "open_deal,deal_action";
-/// Escrow actions the agent may take through `deal_action`.
-const AGENT_DEAL_METHODS: [&str; 4] = ["accept_deal", "mark_delivered", "confirm", "cancel"];
+/// Escrow actions the agent may take through `deal_action`. Not `confirm`: paying out
+/// waits for the guardian or the review window, so a stolen key can't pay at once.
+const AGENT_DEAL_METHODS: [&str; 3] = ["accept_deal", "mark_delivered", "cancel"];
 /// Escrow actions the guardian may take: the agent's, plus disputes and splits.
 const GUARDIAN_DEAL_METHODS: [&str; 6] = [
     "accept_deal",
@@ -1060,9 +1061,10 @@ mod tests {
         contract.deal_action(method.into(), near_sdk::serde_json::json!({ "id": "0" }))
     }
 
-    /// Test 41: the agent confirms a delivery through the policy.
+    /// Test 41: the agent can't pay out a delivery; only the guardian or the review window can.
     #[test]
-    fn agent_confirms() {
+    #[should_panic(expected = "Not allowed")]
+    fn agent_cannot_confirm() {
         let mut contract = setup();
         let _ = act(
             &mut contract,

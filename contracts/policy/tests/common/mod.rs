@@ -100,7 +100,7 @@ impl World {
                 &root,
                 "set_policy_hash",
                 json!({ "hash": hash }),
-                ZERO,
+                YOCTO,
             )
             .await?
             .assert_success();
