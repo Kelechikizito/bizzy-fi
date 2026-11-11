@@ -21,7 +21,7 @@ Stack: Next.js 16, React 19, Tailwind v4 (no PostCSS config; tokens live in `app
 | Folder                                     | Yours?               | What it is                                                                 |
 | ------------------------------------------ | -------------------- | -------------------------------------------------------------------------- |
 | `app/*/page.tsx`                           | **Yes**              | The pages. Layout, copy, components                                        |
-| `components/`                              | **Yes**              | `ui.tsx` (Frame, Button, Receipt, Problem), `world-id.tsx`, `treasury.tsx`, `agent.tsx`, `connections.tsx`, `share.tsx` (Post on X) |
+| `components/`                              | **Yes**              | `ui.tsx` (Frame, Button, Receipt, Problem), `world-id.tsx`, `treasury.tsx`, `agent.tsx`, `connections.tsx`, `share.tsx` (Post on X), `connect-ai.tsx` (MCP key + setup) |
 | `app/globals.css`, `app/layout.tsx`        | **Yes**              | Colours, fonts                                                             |
 | `lib/near/read.ts`, `lib/near/treasury.ts` | Read only, ask first | Reads from the chain                                                       |
 | `lib/wallet.tsx`                           | Don't change         | Login and signing (Privy + NEAR wallets)                                   |
@@ -43,7 +43,7 @@ const {
 
 - `account`: `undefined` while checking, `null` when signed out, else the account name. Pages redirect on `null`.
 - `send(receiver, calls, transfer?)`: signs and sends one transaction; resolves to `{ hash, value }`. Takes a few seconds. Show progress on the button and the `hash` as a `<Receipt>` link afterwards.
-- `api(path, body)`: POSTs to our backend and throws the server's error message. Connections: `/api/companies/[id]/connections` (`{ invite }` or `{ demo }`; returns your code and each connection's fingerprint), `/api/invites/[code]`. Agent routes: `/api/companies/[id]/negotiate` (`{ want, max }`, takes 15 to 30 s), `/negotiations` (the list), `/brief` (the private seller notes). `/api/deals/[id]` returns one deal for its buyer or seller (settling it first if due; `{ demoDeliver: true }` makes a demo seller deliver).
+- `api(path, body)`: POSTs to our backend and throws the server's error message. MCP: `/api/mcp` (bearer key; tools `find_businesses`, `buy`, `my_deals`, `mark_delivered`), `/api/companies/[id]/mcp-key` (`{ action: "create" | "revoke" }`). Connections: `/api/companies/[id]/connections` (`{ invite }` or `{ demo }`; returns your code and each connection's fingerprint), `/api/invites/[code]`. Agent routes: `/api/companies/[id]/negotiate` (`{ want, max }`, takes 15 to 30 s), `/negotiations` (the list), `/brief` (the private seller notes). `/api/deals/[id]` returns one deal for its buyer or seller (settling it first if due; `{ demoDeliver: true }` makes a demo seller deliver).
 
 Reads (no login needed):
 
