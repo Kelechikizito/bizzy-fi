@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AgentBrief, AskAgent } from "@/components/agent";
+import { Connections } from "@/components/connections";
 import { Treasury } from "@/components/treasury";
 import { Button, Frame, Problem, Receipt } from "@/components/ui";
 import { WorldIdButton } from "@/components/world-id";
@@ -238,6 +239,7 @@ export default function Dashboard() {
         onAdd={(n) => void act("Money added", [], `${toYocto(n)} yocto`)}
         onWithdraw={(n) => void act("Money taken out", [{ method: "withdraw", args: { amount: toYocto(n), to: account }, deposit: ONE, gas: "50 Tgas" }])}
       />
+      <Connections company={id} busy={!!busy} act={act} version={data} />
       <AgentBrief company={id} />
       <p className="mt-10 text-sm text-muted">
         Your business address is {id}. Your score comes from the {REGISTRY_ID} directory.

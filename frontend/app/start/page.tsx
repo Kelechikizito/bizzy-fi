@@ -16,6 +16,12 @@ const STEPS = ["Your account", "Your business", "Spending rules", "Starting mone
 const [BUSINESS, RULES, MONEY, OPEN, HUMAN, AGENT] = [1, 2, 3, 4, 5, 6];
 const FEES = 0.2;
 
+/** Back to the invite that brought them here, or to the dashboard. */
+const afterSignUp = () => {
+  const invite = new URLSearchParams(location.search).get("invite");
+  return invite ? `/invite/${invite}` : "/dashboard";
+};
+
 export default function Start() {
   const { account, send } = useSession();
   const [step, setStep] = useState(BUSINESS);
@@ -38,7 +44,7 @@ export default function Start() {
     void findCompany(account).then(async (c) => {
       if (!c) return;
       const [company, key, status] = await Promise.all([getCompany(c), reader.view(c, "get_agent_key"), reader.view(c, "get_status")]);
-      if (key || status !== "Active") return location.replace("/dashboard");
+      if (key || status !== "Active") return location.replace(afterSignUp());
       setId(c);
       setHuman(!!company?.human);
       setStep(company?.human ? AGENT : HUMAN);
@@ -88,7 +94,7 @@ export default function Start() {
     run("Giving your agent its key…", async () => {
       const { public_key } = await api<{ public_key: string }>(`/api/companies/${id}/agent-key`);
       await send(id!, [{ method: "set_agent_key", args: { public_key }, deposit: "1 yocto" }]);
-      location.replace("/dashboard");
+      location.replace(afterSignUp());
     });
 
   const canNext = { [BUSINESS]: valid && free === true && about.trim().length > 0, [RULES]: true, [MONEY]: amount >= 0.5 && amount <= most }[step];

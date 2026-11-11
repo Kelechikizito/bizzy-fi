@@ -5,6 +5,7 @@ import { attest, chat, type Message, prove, type Proof, type Reply } from "./ai.
 import { open, seal } from "./crypto.ts";
 import { db } from "./db.ts";
 import { HttpError } from "./http.ts";
+import { connections } from "./connections.ts";
 import { agentSigner, call, reader } from "./near.ts";
 import { saveTerms } from "./terms.ts";
 
@@ -88,11 +89,11 @@ export async function setBrief(company: string, text: string) {
   await (await db()).execute({ sql: "INSERT OR REPLACE INTO briefs (company, sealed) VALUES (?, ?)", args: [company, seal(`brief:${company}`, text.slice(0, 2000))] });
 }
 
-/** Lets the buyer's agent choose a seller among businesses that have a hosted agent. */
-async function pickSeller(buyer: string, request: string, replies: Reply[]): Promise<string> {
+/** Lets the buyer's agent choose a seller among businesses that have a hosted agent (only `allowed` ones, if given). */
+async function pickSeller(buyer: string, request: string, replies: Reply[], allowed?: string[]): Promise<string> {
   const { rows } = await (await db()).execute({ sql: "SELECT company FROM agent_keys WHERE company != ?", args: [buyer] });
   const found = await Promise.all(
-    rows.slice(0, 30).map(async (r) => {
+    rows.filter((r) => !allowed || allowed.includes(String(r.company))).slice(0, 30).map(async (r) => {
       const c = await reader.view<{ about: string }>(REGISTRY_ID, "get_company", { account_id: String(r.company) });
       return c && { id: String(r.company), about: c.about };
     }),
@@ -116,15 +117,15 @@ async function pickSeller(buyer: string, request: string, replies: Reply[]): Pro
 export async function negotiate(buyer: string, request: string, max: number, chosen?: string): Promise<Negotiation> {
   const attested = attest().catch(() => ({ nonce: "", address: null, gpu: false, bound: false }));
   const replies: Reply[] = [];
-  const seller = chosen || (await pickSeller(buyer, request, replies));
+  // With "only businesses I approve", the agent shops among approved connections and proves each with its salt.
+  const limits = await reader.view<{ allowlist_only: boolean }>(buyer, "get_limits");
+  const approved = limits?.allowlist_only ? (await connections(buyer)).filter((c) => c.approved) : null;
+  if (approved?.length === 0) throw new HttpError(400, "Your agent may only pay businesses you approve. Connect with one under Businesses you trade with.");
+  const seller = chosen || (await pickSeller(buyer, request, replies, approved?.map((c) => c.other)));
   if (seller === buyer) throw new HttpError(400, "Pick another business");
-  const [buyerAgent, sellerAgent, available, limits] = await Promise.all([
-    agentSigner(buyer),
-    agentSigner(seller),
-    reader.view<string>(buyer, "get_available_balance"),
-    reader.view<{ allowlist_only: boolean }>(buyer, "get_limits"),
-  ]);
-  if (limits?.allowlist_only) throw new HttpError(400, 'Your rules only let your agent pay businesses you approve. Choose "Any business" in Settings.');
+  const salt = approved ? approved.find((c) => c.other === seller)?.salt : null;
+  if (salt === undefined) throw new HttpError(400, "You haven't approved this business yet");
+  const [buyerAgent, sellerAgent, available] = await Promise.all([agentSigner(buyer), agentSigner(seller), reader.view<string>(buyer, "get_available_balance")]);
   const has = Math.floor((Number(BigInt(available ?? "0") / 10n ** 20n) / 1e4 - FEE_RESERVE) * 1e4) / 1e4;
   if (has < MIN_DEAL) throw new HttpError(400, `Your agent has ${has} NEAR. Add money first.`);
   max = Math.min(max, has);
@@ -147,7 +148,7 @@ export async function negotiate(buyer: string, request: string, max: number, cho
   if (agreed && agreed.price_near < MIN_DEAL) record.problem = `Deals start at ${MIN_DEAL} NEAR`;
   else if (agreed) {
     try {
-      await openDeal(record, agreed, buyerAgent, sellerAgent);
+      await openDeal(record, agreed, buyerAgent, sellerAgent, salt);
     } catch (e) {
       record.status = "failed";
       record.problem = e instanceof Error ? e.message : String(e);
@@ -157,13 +158,13 @@ export async function negotiate(buyer: string, request: string, max: number, cho
 }
 
 /** Saves the terms, has the buyer's agent lock the money, and the seller's agent accept the same terms. */
-async function openDeal(record: Omit<Negotiation, "id">, agreed: Offer, buyerAgent: Awaited<ReturnType<typeof agentSigner>>, sellerAgent: Awaited<ReturnType<typeof agentSigner>>) {
+async function openDeal(record: Omit<Negotiation, "id">, agreed: Offer, buyerAgent: Awaited<ReturnType<typeof agentSigner>>, sellerAgent: Awaited<ReturnType<typeof agentSigner>>, salt: string | null) {
   const now = BigInt(Date.now()) * 1_000_000n;
   record.terms = { ...agreed, action: "accept", deliver_by: (now + BigInt(agreed.delivery_days) * DAY_NS).toString() };
   record.termsHash = await saveTerms(record.terms, record.buyer, record.seller);
   const amount = ((BigInt(Math.round(agreed.price_near * 1e4)) * 10n ** 24n) / 10_000n).toString();
   const deal = { seller: record.seller, terms_hash: record.termsHash, deliver_by: record.terms.deliver_by, milestones: [amount] };
-  const opened = await call<{ Opened?: { deal_id: string }; NeedsApproval?: { id: string } } | "Failed">(buyerAgent, record.buyer, "open_deal", { deal, salt: null }, OPEN_GAS);
+  const opened = await call<{ Opened?: { deal_id: string }; NeedsApproval?: { id: string } } | "Failed">(buyerAgent, record.buyer, "open_deal", { deal, salt }, OPEN_GAS);
   record.receipts.opened = opened.hash;
   if (typeof opened.value === "object" && opened.value.Opened) {
     record.receipts.accepted = await accept(sellerAgent, opened.value.Opened.deal_id, record.termsHash);

@@ -9,7 +9,7 @@ import { setBrief } from "../lib/server/negotiate.ts";
 
 const BRIEFS: Record<string, string> = {
   cafe: "We sell coffee beans to other cafes: 0.01 NEAR per 100 g, never below 0.008 per 100 g. Delivery in 2 days.",
-  cups: "Compostable 12 oz cups with lids. List price 0.004 NEAR a cup; lowest 0.003 a cup for orders of 300 or more, 0.0035 below that. Minimum order 100. Delivery in 3 to 7 days; faster costs 10% more.",
+  cups: "Compostable 12 oz cups with lids. List price 0.004 NEAR a cup; lowest 0.003 a cup for orders of 300 or more, 0.0035 below that. Minimum order 20. Delivery in 3 to 7 days; faster costs 10% more.",
 };
 
 for (const name of Object.keys(BRIEFS)) {
