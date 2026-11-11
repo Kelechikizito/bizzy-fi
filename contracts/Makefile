@@ -35,7 +35,7 @@ upload-policy: build ## Upload the shared policy code (BURNS about 20 NEAR)
 
 set-hash: ## Tell the registry to use the uploaded policy code
 	@test -f $(UPLOADED) || { echo 'Run make upload-policy first.'; exit 1; }
-	near contract call-function as-transaction $(REGISTRY) set_policy_hash json-args "{\"hash\":\"$$(cat $(UPLOADED))\"}" prepaid-gas '30 Tgas' attached-deposit '0 NEAR' sign-as $(REGISTRY) $(SIGN)
+	near contract call-function as-transaction $(REGISTRY) set_policy_hash json-args "{\"hash\":\"$$(cat $(UPLOADED))\"}" prepaid-gas '30 Tgas' attached-deposit '1 yoctoNEAR' sign-as $(REGISTRY) $(SIGN)
 
 abis: ## Copy the built ABIs to the frontend (run after any contract change)
 	@mkdir -p ../frontend/lib/near/abi

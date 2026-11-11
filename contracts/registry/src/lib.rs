@@ -6,8 +6,8 @@ use near_sdk::json_types::{Base58CryptoHash, U64};
 use near_sdk::serde_json::json;
 use near_sdk::store::{IterableMap, LookupMap, LookupSet};
 use near_sdk::{
-    AccountId, BorshStorageKey, CryptoHash, Gas, NearToken, PanicOnDefault, Promise, env, near,
-    require,
+    AccountId, BorshStorageKey, CryptoHash, Gas, NearToken, PanicOnDefault, Promise,
+    assert_one_yocto, env, near, require,
 };
 
 /// Least NEAR to attach: covers the company's storage and its agent's first fees.
@@ -107,11 +107,13 @@ impl Contract {
 
     /// Sets the hash of the policy code, uploaded once as a global contract. Owner only.
     /// New companies use that exact code; by hash, nobody can ever change it.
+    #[payable]
     pub fn set_policy_hash(&mut self, hash: Base58CryptoHash) {
         require!(
             env::predecessor_account_id() == self.owner,
             "Only the owner can do this"
         );
+        assert_one_yocto();
         self.policy_hash = Some(hash.into());
     }
 
@@ -356,7 +358,7 @@ mod tests {
     /// A registry that knows the policy code's hash.
     fn ready() -> Contract {
         let mut contract = setup();
-        set_caller_with_input(OWNER, vec![]);
+        testing_env!(context(OWNER, NearToken::from_yoctonear(1)));
         contract.set_policy_hash([1; 32].into());
         contract
     }
@@ -444,7 +446,7 @@ mod tests {
     #[test]
     fn owner_sets_policy_hash() {
         let mut contract = setup();
-        set_caller_with_input(OWNER, vec![]);
+        testing_env!(context(OWNER, NearToken::from_yoctonear(1)));
         contract.set_policy_hash([1; 32].into());
         assert_eq!(contract.policy_hash, Some([1; 32]));
     }
@@ -455,6 +457,15 @@ mod tests {
     fn stranger_cannot_set_policy_hash() {
         let mut contract = setup();
         set_caller_with_input("stranger.testnet", vec![]);
+        contract.set_policy_hash([1; 32].into());
+    }
+
+    /// Test 3b: the owner must attach 1 yoctoNEAR, so a limited key can't change the code.
+    #[test]
+    #[should_panic(expected = "Requires attached deposit of exactly 1 yoctoNEAR")]
+    fn owner_needs_one_yocto() {
+        let mut contract = setup();
+        set_caller_with_input(OWNER, vec![]);
         contract.set_policy_hash([1; 32].into());
     }
 

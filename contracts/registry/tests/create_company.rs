@@ -55,6 +55,7 @@ async fn create_company_works_and_refunds() -> testresult::TestResult {
         json!({ "hash": policy_hash.to_string() }),
     )
     .transaction()
+    .deposit(NearToken::from_yoctonear(1))
     .with_signer(registry.clone(), root.clone())
     .send_to(&net)
     .await?
