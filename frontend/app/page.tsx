@@ -41,7 +41,7 @@ const TECH = [
   {
     label: "Sign-in",
     name: "NEAR Connect",
-    line: "Any NEAR wallet: HOT, Meteor, MyNearWallet and more",
+    line: "Any NEAR wallet: Meteor, MyNearWallet, Intear and more",
   },
   { label: "Agent connect", name: "MCP", line: "Claude, Cursor, and more" },
   {
@@ -78,7 +78,7 @@ const FAQ = [
   },
   {
     q: "Do I need a crypto wallet?",
-    a: "You need a NEAR wallet to sign in. Any one works, and Meteor or HOT make one free in a minute. On testnet a new account gets 1 free test NEAR to try things.",
+    a: "You need a NEAR wallet to sign in. Any one that supports testnet works, and Meteor makes one free in a minute. On testnet a new account gets 1 free test NEAR to try things.",
   },
   {
     q: "What does it cost?",

@@ -21,8 +21,9 @@ export default function Login() {
         Sign in with your NEAR wallet
       </h1>
       <p className="mt-3 text-muted">
-        Pick any NEAR wallet, such as HOT, Meteor or MyNearWallet. It asks you
-        to sign one message to prove the account is yours. That costs nothing.
+        Pick a NEAR wallet that supports testnet, such as Meteor, MyNearWallet
+        or Intear. It asks you to sign one message to prove the account is
+        yours. That costs nothing.
       </p>
       <Button
         onClick={() => void signInWithWallet()}
