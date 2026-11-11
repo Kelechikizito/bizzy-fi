@@ -39,15 +39,20 @@ export async function logIn(nonce: string, signed: SignedMessage): Promise<strin
     { near: fresh ? undefined : reader, nonceValidation: "none" },
   );
   if (!valid) throw new HttpError(401, "That signature didn't check out");
+  return startSession(signed.accountId);
+}
+
+/** Sets the signed session cookie for `account` and returns it. */
+export async function startSession(account: string): Promise<string> {
   const expires = Date.now() + SESSION_MS;
-  (await cookies()).set(COOKIE, signSession(signed.accountId, expires), {
+  (await cookies()).set(COOKIE, signSession(account, expires), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     expires,
   });
-  return signed.accountId;
+  return account;
 }
 
 /** The account ID a key owns without anyone creating it: the key's 32 bytes in hex. */

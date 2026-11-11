@@ -86,8 +86,8 @@ Our keeper calls these with a key limited to exactly those methods. Every payout
 
 ### The app ([frontend/](frontend))
 
-- **Sign-in:** any NEAR wallet through NEAR Connect (Meteor, MyNearWallet, Intear and others with testnet support), proved by one signed message; a sponsor sends new testnet accounts 1 test NEAR.
-- **Dashboard:** limits, approvals, a freeze button, private seller notes, and a Sputnik DAO team treasury.
+- **Sign-in:** **Continue with Google** through [NEAR Auth](https://auth.near.org), NEAR's own social login: the account is a key NEAR's MPC network holds for your Google login, so there's no seed phrase. The server checks the login token and derives the account itself ([`near-auth.ts`](frontend/lib/server/near-auth.ts)). Any NEAR wallet also works through NEAR Connect. A sponsor sends new testnet accounts 1 test NEAR.
+- **Dashboard:** a sidebar with tabs for buying, deals, approvals, money and rules, partners, a Sputnik DAO team treasury and your profile; the freeze button is always on screen.
 - **Pages:** deal pages with a timeline, disputes and split offers; invite links and QR codes for approved partners; direct deals for terms agreed offline; public profiles at `/b/<name>` with share cards for X; a leaderboard at `/top`.
 - **Bring your own agent:** an MCP endpoint (`/api/mcp`) lets Claude, Cursor or any MCP client act as a business's agent, with exactly the agent's powers.
 
@@ -129,15 +129,15 @@ The other paths:
 
 ## Try it
 
-Do these on the hosted site or locally (see Quick start):
+Do these locally (see Quick start) or on the hosted site:
 
-1. **Sign in** with a NEAR testnet wallet (Meteor makes one free), then name your business. You get a business account that holds its own money.
-2. **Add money** (Settings → Add money), for example 0.5 test NEAR.
+1. **Sign in.** Locally, press **Continue with Google**: NEAR Auth makes your NEAR account, with no seed phrase. On the hosted site, use a NEAR testnet wallet (Meteor makes one free). Then name your business. You get a business account that holds its own money.
+2. **Add money** (Money and rules → Add money), for example 0.5 test NEAR.
 3. **Ask your agent:** `100 compostable cups, delivered this week`, up to `0.4`. In about 30 seconds you see "Bought 100 × compostable cups from cups", the **Verified private** badge (open it for the three checks), the moves, and two receipts.
 4. **Open the deal** under Deals. Press **Have cups deliver now (demo)**, then **It arrived: pay cups**. The timeline reaches "Seller paid".
 5. **Try the limits:** ask for something above your per-deal limit. It lands under **Waiting for your OK**.
 6. **Press Freeze agent.** Asking again now fails, because the agent's key is gone from the chain.
-7. **Approved businesses only:** Businesses you trade with → **Connect with cups**, then Settings → **Only businesses I approve**. Your agent still buys from cups and refuses anyone else.
+7. **Approved businesses only:** Partners → **Connect with cups**, then Money and rules → **Only businesses I approve**. Your agent still buys from cups and refuses anyone else.
 8. **Your own AI:** "Use your own AI as your agent" → make a key → run the Claude Code line. Then ask Claude to buy cups on Bizzy-Fy.
 9. Open **Top businesses** and your public profile at `/b/<your name>`.
 
@@ -152,7 +152,7 @@ cp .env.example .env.local   # fill in the values; names and purposes are in the
 npm run dev                  # http://localhost:3000
 ```
 
-> The site uses the testnet contracts listed above, so you don't need to deploy anything. To let the demo businesses negotiate, load their agent keys once: `node --conditions=react-server --env-file=.env.local --env-file=../scripts/.env.demo scripts/import-demo-agents.ts`.
+> Google sign-in works here on `http://localhost:3000`: NEAR Auth's shared testnet login only accepts localhost for now. The site uses the testnet contracts listed above, so you don't need to deploy anything. To let the demo businesses negotiate, load their agent keys once: `node --conditions=react-server --env-file=.env.local --env-file=../scripts/.env.demo scripts/import-demo-agents.ts`.
 
 Contracts: `cd contracts && make test` (all tests and clippy), `make build`. `make help` lists deploy steps (testnet only).
 
@@ -185,6 +185,8 @@ The three contracts were reviewed against the `near-contract-audit` checklist ([
 - **A buyer can back out of an accepted deal by disputing before delivery.** The refund comes after an hour, and the seller can't mark delivery while disputed. A fix is to let the seller still deliver during that dispute.
 - **The seller's lowest price is kept by the AI, not code.** In one run it went 0.015 NEAR under its notes. A per-unit floor field would let code enforce it, as it already does for the buyer.
 - **The attestation is fetched from one NEAR AI node,** and Intel's signature on the TDX quote isn't checked in-app (it needs Intel's certificate chain). If a different node answers, the signatures don't match and the badge stays off. Anyone can check the quote at [proof.t16z.com](https://proof.t16z.com).
+- **Google sign-in is local-only on testnet.** NEAR Auth's shared testnet login accepts only `localhost`, so the hosted site offers NEAR wallets. Once NEAR Auth allows the domain (or on mainnet, after their approval), setting `NEXT_PUBLIC_NEAR_AUTH=on` turns it on with no code change. Each owner action (open a business, Freeze, approvals) opens a NEAR Auth approval window; the agent's own buying never does.
+- **NEAR Auth's message signing isn't in its published SDK yet** (1.4.2), so sign-in checks the NEAR Auth ID token on our server and derives the account from NEAR's MPC contract, rather than a signed message.
 - **"Delivered" is the seller's word.** The buyer's protection is the review hour and disputes. Deal amounts are public; only the terms are private.
 
 ## Track alignment

@@ -5,7 +5,7 @@ import { db } from "./db.ts";
 import { need } from "./http.ts";
 import { reader } from "./near.ts";
 
-const SPONSOR_ID = "bizzy-fy-sponsor.testnet";
+export const SPONSOR_ID = "bizzy-fy-sponsor.testnet";
 const MAX_PER_DAY = 20;
 const DAY_MS = 24 * 60 * 60 * 1000;
 

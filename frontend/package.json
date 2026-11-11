@@ -10,6 +10,8 @@
     "test": "node --conditions=react-server --test lib/server/server.test.ts"
   },
   "dependencies": {
+    "@fast-auth-near/browser-sdk": "1.4.2",
+    "@fast-auth-near/javascript-provider": "1.4.1",
     "@hot-labs/near-connect": "0.11.4",
     "@libsql/client": "0.18.0",
     "@modelcontextprotocol/server": "2.3.1",
@@ -20,6 +22,7 @@
     "jose": "4.15.9",
     "mcp-handler": "2.3.0",
     "motion": "14.7.1",
+    "near-api-js": "5.1.1",
     "near-kit": "0.20.2",
     "next": "16.4.5",
     "qrcode": "1.5.4",

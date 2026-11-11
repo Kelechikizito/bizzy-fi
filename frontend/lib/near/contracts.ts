@@ -10,6 +10,14 @@ export const REGISTRY_ID = "bizzy-fy.testnet";
 export const ESCROW_ID = "escrow.bizzy-fy.testnet";
 export const ATTESTER_ID = "bizzy-fy-attester.testnet";
 
+/** NEAR Auth (Google sign-in) on testnet: NEAR's shared login, contracts and MPC signer. */
+export const NEAR_AUTH = {
+  clientId: "np8paqIpMWmNbzT4xAvOOapZBjsOpptl",
+  domain: "login.testnet.fast-auth.com",
+  fastAuthContractId: "fast-auth.testnet",
+  mpcContractId: "v1.signer-prod.testnet",
+};
+
 /** The shared policy code every new company runs. */
 export const POLICY_CODE_HASH = "Ah9j86UuAV6fqyP1yzPVKSw8SWDGgaDpkTwiuxbvfvx6";
 
