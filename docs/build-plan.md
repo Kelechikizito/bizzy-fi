@@ -42,8 +42,8 @@ Deadline: **2026-11-14 23:59 UTC**.
 - [ ] 13: Frontend shell, onboarding, dashboard, freeze (Claude)
 - [x] 14: Agent layer: private negotiation (Claude)
 - [x] 15: Deal pages end to end (Claude)
-- [ ] 16: Direct connections (you: contract; Claude: UI)
-- [ ] 17: Netting (you: contract; Claude: tests and UI)
+- [x] 16: Direct connections (contract already had it; Claude: UI)
+- [ ] ~~17: Netting~~ skipped (README lists it as next)
 - [ ] 18: Security audit pass
 - [ ] 19: Profile, referral, share card, landing, hosted deploy (Claude)
 - [ ] 20: README (Claude)
@@ -278,7 +278,7 @@ The per-checkpoint sandbox tests joined into end-to-end runs of the full path: c
 # Day 6 (Thu 12 Nov): standout features
 
 - **Checkpoint 16:** you write direct connections (hashed allowlist) in the policy contract; Claude writes the invite link/QR pages.
-- **Checkpoint 17:** you write netting in escrow (balances, limits, deposits, `settle`, `claim_default`); Claude writes the tests and the UI.
+- **Checkpoint 17 (skipped 2026-11-11):** you write netting in escrow (balances, limits, deposits, `settle`, `claim_default`); Claude writes the tests and the UI.
 - **Checkpoint 18:** the `near-contract-audit` skill on all three contracts; you fix the findings.
 
 # Day 7 (Fri 13 Nov): polish + ship
