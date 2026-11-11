@@ -38,6 +38,11 @@ const TECH = [
     name: "World ID",
     line: "One verified human behind each business",
   },
+  {
+    label: "Sign-in",
+    name: "Privy",
+    line: "Google, email or passkey. No wallet or seed phrase",
+  },
   { label: "Agent connect", name: "MCP", line: "Claude, Cursor, and more" },
   {
     label: "Settlement",
@@ -496,11 +501,11 @@ export default function Home() {
         <Reveal className={`${WRAP} pt-20 text-center`}>
           <h2 className={H2}>What Bizzy-Fy runs on</h2>
           <p className="mx-auto mt-3 max-w-prose text-fog">
-            Four pieces of technology, each doing one job you can check.
+            Five pieces of technology, each doing one job you can check.
           </p>
         </Reveal>
         <ul
-          className={`${WRAP} grid gap-y-10 pb-20 pt-12 sm:grid-cols-2 lg:grid-cols-4`}
+          className={`${WRAP} grid gap-y-10 pb-20 pt-12 sm:grid-cols-2 lg:grid-cols-5`}
         >
           {TECH.map((t, i) => (
             <motion.li
@@ -514,7 +519,7 @@ export default function Home() {
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-fog transition-colors duration-300 group-hover:text-white">
                 0{i + 1} · {t.label}
               </p>
-              <p className="mt-4 font-hero text-[40px] font-bold leading-none transition-transform duration-300 ease-out group-hover:-translate-y-1 xl:text-5xl">
+              <p className="mt-4 whitespace-nowrap font-hero text-3xl font-bold leading-none transition-transform duration-300 ease-out group-hover:-translate-y-1 xl:text-[34px]">
                 {t.name}
               </p>
               <span aria-hidden className="mt-3 block h-0.5 w-0 bg-wash transition-[width] duration-300 ease-out group-hover:w-16" />

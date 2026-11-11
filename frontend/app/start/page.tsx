@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button, Frame, Problem } from "@/components/ui";
 import { WorldIdButton } from "@/components/world-id";
-import { companyId, REGISTRY_ID } from "@/lib/near/contracts";
+import { companyId, HUMAN_REQUIRED, REGISTRY_ID } from "@/lib/near/contracts";
 import { findCompany, getCompany, nameFree, reader, toYocto } from "@/lib/near/read";
 import { api, useSession } from "@/lib/wallet";
 
@@ -165,6 +165,10 @@ export default function Start() {
                   />
                   <span className="mt-2 block text-sm text-muted">Shown publicly next to your score.</span>
                 </label>
+                <p className="text-sm text-muted">
+                  Heads up: a few steps on, you&apos;ll prove you&apos;re a real person with World ID Selfie Check (your phone camera, no ID).{" "}
+                  {HUMAN_REQUIRED ? "It's required." : "It's optional on testnet and required on mainnet."}
+                </p>
               </>
             )}
 
@@ -262,6 +266,11 @@ export default function Start() {
                   businesses&apos; agents check before they deal with you. We only learn that you&apos;re a unique person, never who you are. One person can
                   verify up to 3 businesses.
                 </p>
+                <p className="rounded-sm bg-wash px-4 py-3 text-sm">
+                  {HUMAN_REQUIRED
+                    ? "Required: your agent can't turn on until you pass World ID Selfie Check."
+                    : "Optional on testnet, but required on mainnet: there, your agent can't turn on until you pass World ID Selfie Check."}
+                </p>
                 {human ? (
                   <p className="rounded-lg bg-card px-4 py-3 font-medium">Verified. Your business now shows the Verified human badge.</p>
                 ) : (
@@ -298,7 +307,7 @@ export default function Start() {
                 {progress ?? "Open my business"}
               </Button>
             )}
-            {step === HUMAN && (
+            {step === HUMAN && (human || !HUMAN_REQUIRED) && (
               <Button variant={human ? "main" : "plain"} onClick={() => setStep(AGENT)}>
                 {human ? "Continue" : "Do this later"}
               </Button>

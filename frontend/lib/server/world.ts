@@ -5,17 +5,20 @@ import { REGISTRY_ID } from "../near/contracts.ts";
 import { HttpError, need } from "./http.ts";
 import { backendSigner, send } from "./near.ts";
 
-const ACTION = "verify-guardian";
+/** World lets a person prove once per action, so three numbered actions give each person up to 3 businesses. */
+const ACTIONS = ["verify-guardian-1", "verify-guardian-2", "verify-guardian-3"];
 const environment = () => process.env.WORLD_ENVIRONMENT ?? "sandbox";
 
 type WorldProof = { action?: string; environment?: string; responses?: { nullifier?: string }[] };
 
-/** Signs a proof request so the browser can open World ID. */
-export function requestProof() {
-  const { sig, nonce, createdAt, expiresAt } = signRequest({ signingKeyHex: need("WORLD_SIGNING_KEY"), action: ACTION });
+/** Signs a proof request for business slot `slot` (1–3) so the browser can open World ID. */
+export function requestProof(slot: unknown) {
+  const action = ACTIONS[Number(slot) - 1];
+  if (!action) throw new HttpError(400, "Bad World ID slot");
+  const { sig, nonce, createdAt, expiresAt } = signRequest({ signingKeyHex: need("WORLD_SIGNING_KEY"), action });
   return {
     app_id: need("WORLD_APP_ID"),
-    action: ACTION,
+    action,
     environment: environment(),
     rp_context: { rp_id: need("WORLD_RP_ID"), nonce, created_at: createdAt, expires_at: expiresAt, signature: sig },
   };
@@ -29,7 +32,7 @@ export function nullifierToHash(value: string): string {
 
 /** Asks World to check the proof and returns its nullifier hash. */
 export async function verifyProof(proof: WorldProof): Promise<string> {
-  if (proof.environment !== environment() || proof.action !== ACTION || proof.responses?.length !== 1) {
+  if (proof.environment !== environment() || !ACTIONS.includes(proof.action ?? "") || proof.responses?.length !== 1) {
     throw new HttpError(400, "Bad World ID proof");
   }
   const response = await fetch(`https://developer.world.org/api/v4/verify/${need("WORLD_RP_ID")}`, {

@@ -1,6 +1,8 @@
 // Where the Bizzy-Fy contracts live on NEAR. ABIs are in ./abi (refresh with `make abis`).
 
 export const NETWORK = "testnet";
+/** On mainnet every business must pass Selfie Check before its agent turns on; on testnet it's optional. */
+export const HUMAN_REQUIRED = (NETWORK as string) === "mainnet";
 export const RPC_URL = "https://rpc.testnet.fastnear.com";
 export const EXPLORER_URL = "https://testnet.nearblocks.io";
 
