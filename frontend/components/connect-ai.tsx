@@ -38,7 +38,7 @@ export function ConnectAi({ company }: { company: string }) {
       </p>
 
       {key && (
-        <div className="mt-4 rounded-lg border-l-4 border-wait bg-card px-4 py-3">
+        <div className="mt-4 rounded-sm border border-ink bg-wash px-4 py-3">
           <p className="font-medium">Your key (shown once, keep it secret):</p>
           <code className="mt-1 block break-all text-sm">{key}</code>
         </div>
@@ -48,12 +48,12 @@ export function ConnectAi({ company }: { company: string }) {
         <div className="mt-4">
           <div className="flex flex-wrap gap-2" role="tablist">
             {setups.map((s, i) => (
-              <button key={s.name} role="tab" aria-selected={tab === i} onClick={() => setTab(i)} className={`rounded-full px-3 py-1 text-sm ${tab === i ? "bg-ink text-paper" : "border border-rule"}`}>
+              <button key={s.name} role="tab" aria-selected={tab === i} onClick={() => setTab(i)} className={`rounded-sm px-3 py-1 text-sm ${tab === i ? "bg-ink text-white" : "border border-rule"}`}>
                 {s.name}
               </button>
             ))}
           </div>
-          <pre className="mt-2 overflow-x-auto rounded-lg bg-ink p-4 text-sm text-paper">{setups[tab].text}</pre>
+          <pre className="mt-2 overflow-x-auto rounded-lg bg-ink p-4 text-sm text-white">{setups[tab].text}</pre>
           <p className="mt-2 text-sm text-muted">Then try: &quot;Find me a cup supplier on Bizzy-Fy and buy 100 cups for at most 0.5 NEAR.&quot;</p>
         </div>
       )}

@@ -114,8 +114,8 @@ export default function Start() {
                 className={`flex items-center gap-3 rounded-lg px-2 py-2 ${i === step ? "bg-card font-medium" : i < step ? "" : "text-muted"}`}
               >
                 <span
-                  className={`grid size-7 shrink-0 place-items-center rounded-full text-sm ${
-                    i < step ? "bg-ink text-paper" : i === step ? "border-2 border-ink" : "border border-rule"
+                  className={`grid size-7 shrink-0 place-items-center rounded-sm text-sm ${
+                    i < step ? "bg-ink text-white" : i === step ? "border-2 border-ink" : "border border-rule"
                   }`}
                 >
                   {i < step ? "✓" : i + 1}
@@ -127,7 +127,7 @@ export default function Start() {
         </nav>
 
         <div>
-          <h1 className="font-display text-4xl font-bold tracking-tight">{STEPS[step]}</h1>
+          <h1 className="font-display text-4xl font-bold">{STEPS[step]}</h1>
           <div className="mt-8 space-y-6">
             {step === BUSINESS && (
               <>
@@ -268,7 +268,7 @@ export default function Start() {
                   <WorldIdButton
                     company={id!}
                     onDone={() => setHuman(true)}
-                    className="rounded-lg bg-ink px-5 py-3 font-medium text-paper hover:bg-ink/90"
+                    className="rounded-lg bg-ink px-5 py-3 font-medium text-white hover:bg-ink/90"
                   />
                 )}
               </>

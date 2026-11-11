@@ -125,7 +125,7 @@ function DealPage() {
       </Link>
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="font-display text-3xl font-bold sm:text-4xl">
             {terms ? `${terms.quantity} × ${terms.item}` : `Deal ${id}`}
           </h1>
           <p className="mt-1 text-muted">
@@ -142,7 +142,7 @@ function DealPage() {
           </li>
         ))}
       </ol>
-      {ENDING[deal.status] && <p className="mt-3 inline-block rounded-full border-l-4 border-wait bg-card px-3 py-1 text-sm">{ENDING[deal.status]}</p>}
+      {ENDING[deal.status] && <p className="mt-3 inline-block rounded-sm bg-wash px-3 py-1 text-sm">{ENDING[deal.status]}</p>}
 
       <section className="mt-8 rounded-2xl border-2 border-ink bg-card p-6">
         <p className="max-w-prose">{next[deal.status]}</p>

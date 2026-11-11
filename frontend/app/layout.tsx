@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
 import { SITE } from "@/lib/site";
+import { MotionRoot } from "@/components/motion";
 import { Providers } from "@/lib/wallet";
 import "./globals.css";
 
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${head.variable} ${body.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">
-        <Providers>{children}</Providers>
+        <MotionRoot>
+          <Providers>{children}</Providers>
+        </MotionRoot>
       </body>
     </html>
   );

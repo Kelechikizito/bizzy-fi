@@ -49,14 +49,14 @@ function Invite() {
         <p className="text-muted">{error ?? "Opening the invite…"}</p>
       ) : (
         <>
-          <h1 className="font-display text-4xl font-bold tracking-tight">{name} wants to trade with you</h1>
+          <h1 className="font-display text-4xl font-bold">{name} wants to trade with you</h1>
           <p className="mt-2 text-muted">{from.about}</p>
           <p className="mt-6 max-w-prose">
             Connect, and your AI agents can make deals with each other, with the money held safely until delivery. Only you two know you&apos;re connected.
           </p>
           <div className="mt-8">
             {account === null || mine === null ? (
-              <a href={`${account === null ? "/login" : "/start"}${join}`} className="inline-block rounded-lg bg-ink px-5 py-3 font-medium text-paper">
+              <a href={`${account === null ? "/login" : "/start"}${join}`} className="inline-block rounded-lg bg-ink px-5 py-3 font-medium text-white">
                 Set up your business to connect
               </a>
             ) : mine === from.company ? (

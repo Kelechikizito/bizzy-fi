@@ -15,7 +15,7 @@ export default function Login() {
 
   return (
     <Frame>
-      <h1 className="font-display text-4xl font-bold tracking-tight">Sign in or create an account</h1>
+      <h1 className="font-display text-4xl font-bold">Sign in or create an account</h1>
       <p className="mt-3 text-muted">No wallet or app needed. We make a secure account for you.</p>
       <Button onClick={signInWithPrivy} disabled={busy || !!account} className="mt-8 w-full py-4 text-lg">
         {busy || account ? "Signing you in…" : "Continue with Google, email or passkey"}

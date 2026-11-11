@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { CountUp } from "@/components/motion";
 import { ShareOnX } from "@/components/share";
 import { Frame } from "@/components/ui";
 import { accountUrl } from "@/lib/near/contracts";
@@ -46,17 +47,19 @@ async function Profile({ params }: { params: PageProps<"/b/[name]">["params"] })
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-5xl font-bold tracking-tight">{p.name}</h1>
+          <h1 className="font-display text-5xl font-bold">{p.name}</h1>
           <p className="mt-2 max-w-prose text-lg text-muted">{p.about}</p>
         </div>
-        {p.human && <span className="rounded-full bg-ink px-3 py-1 text-sm text-paper">Verified human</span>}
+        {p.human && <span className="rounded-sm bg-ink px-2 py-1 text-xs font-medium uppercase text-white">Verified human</span>}
       </div>
 
       <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8 border-y-2 border-ink py-8 sm:grid-cols-3">
         {stats.map((s) => (
           <div key={s.label}>
             <dt className="text-sm text-muted">{s.label}</dt>
-            <dd className="mt-1 font-display text-4xl font-bold">{s.value}</dd>
+            <dd className="mt-1 font-display text-4xl font-bold tabular-nums">
+              <CountUp value={s.value} />
+            </dd>
           </div>
         ))}
       </dl>
@@ -106,7 +109,7 @@ async function Profile({ params }: { params: PageProps<"/b/[name]">["params"] })
       </section>
 
       <div className="mt-10 flex flex-wrap items-center gap-6">
-        <Link href={`/login?ref=${p.name}`} className="rounded-lg bg-ink px-6 py-3 font-medium text-paper hover:bg-ink/90">
+        <Link href={`/login?ref=${p.name}`} className="rounded-lg bg-ink px-6 py-3 font-medium text-white hover:bg-ink/90">
           Set up your business
         </Link>
         <ShareOnX text={`${p.name}'s track record on Bizzy-Fy: ${p.deals} deals paid through escrow on @NEARProtocol, score ${p.score}.`} path={`/b/${p.name}`} label="Share this profile on X" />

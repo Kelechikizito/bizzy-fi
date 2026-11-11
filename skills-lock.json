@@ -48,6 +48,12 @@
       "sourceType": "github",
       "skillPath": "skills/near-smart-contracts/SKILL.md",
       "computedHash": "05648651f6db4290406356355f2f8e770e223d592d33b97da023bfaadc26588c"
+    },
+    "refero-design": {
+      "source": "referodesign/refero_skill",
+      "sourceType": "github",
+      "skillPath": "skills/refero-design/SKILL.md",
+      "computedHash": "b39b8c1f87664b1b63c50f5e2bbe7586b08790101920c96d9bbf75fc3a2d5a61"
     }
   }
 }

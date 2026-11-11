@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { CountUp } from "@/components/motion";
 import { Frame } from "@/components/ui";
 import { REGISTRY_ID } from "@/lib/near/contracts";
 import { type Company, reader } from "@/lib/near/read";
@@ -23,7 +24,7 @@ async function ranked() {
 export default function Page() {
   return (
     <Frame wide>
-      <h1 className="font-display text-4xl font-bold tracking-tight">Top businesses</h1>
+      <h1 className="font-display text-4xl font-bold">Top businesses</h1>
       <p className="mt-2 max-w-prose text-muted">
         Ranked by score: 10 points for each deal delivered on time, 5 if late, 3 for each new business dealt with, minus 20 for each dispute lost. Only the escrow contract can
         change these numbers.
@@ -44,17 +45,19 @@ async function Table() {
         const deals = c.reputation.on_time + c.reputation.late;
         return (
           <li key={id}>
-            <Link href={`/b/${name}`} className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 py-4 hover:bg-card">
+            <Link href={`/b/${name}`} className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 px-2 py-4 transition-colors duration-200 hover:bg-card">
               <span className={`text-center font-display text-2xl font-bold ${i < 3 && score > 0 ? "" : "text-rule"}`}>{i + 1}</span>
               <span className="min-w-0">
                 <span className="font-medium">{name}</span>
-                {c.human && <span className="ml-2 rounded-full bg-ink px-2 py-0.5 text-xs text-paper">Verified human</span>}
+                {c.human && <span className="ml-2 rounded-sm bg-ink px-2 py-1 text-xs font-medium uppercase text-white">Verified human</span>}
                 <span className="block truncate text-sm text-muted">
                   {deals} {deals === 1 ? "deal" : "deals"} paid, {c.reputation.counterparties} {c.reputation.counterparties === 1 ? "business" : "businesses"}
                   {c.about ? `. ${c.about}` : ""}
                 </span>
               </span>
-              <span className="font-display text-3xl font-bold">{score}</span>
+              <span className="font-display text-3xl font-bold tabular-nums">
+                <CountUp value={score} />
+              </span>
             </Link>
           </li>
         );

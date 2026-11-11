@@ -6,7 +6,7 @@ import { api } from "@/lib/wallet";
 
 type Request = { app_id: `app_${string}`; action: string; environment: "production" | "staging" | "sandbox"; rp_context: RpContext };
 
-const PILL = "rounded-full border border-ink px-3 py-1 hover:bg-ink hover:text-paper";
+const PILL = "rounded-sm border border-ink px-3 py-1 hover:bg-ink hover:text-white";
 
 export function WorldIdButton({ company, onDone, className = PILL }: { company: string; onDone(): void; className?: string }) {
   const [request, setRequest] = useState<Request | null>(null);

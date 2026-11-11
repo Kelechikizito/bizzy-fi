@@ -1,4 +1,4 @@
-// The headline font for share images, fetched from Google Fonts (ImageResponse can't use next/font).
+// The font for share images, fetched from Google Fonts (ImageResponse can't use next/font).
 
 /** Bricolage Grotesque Bold, limited to the letters in `text`; empty if Google Fonts can't be reached. */
 export async function headFont(text: string) {

@@ -61,7 +61,7 @@ export function Treasury({ company, account, busy, act }: { company: string; acc
           <span className="text-sm text-muted">Costs {COST} NEAR, kept by NEAR to store it.</span>
         </div>
         {wallet < COST + 0.1 && (
-          <div className="mt-4 rounded-lg border-l-4 border-wait bg-card px-4 py-3 text-sm">
+          <div className="mt-4 rounded-sm border border-ink bg-wash px-4 py-3 text-sm">
             <p>
               Your account has {wallet.toFixed(2)} NEAR; you need {COST + 0.1}. On testnet, get free test NEAR at{" "}
               <a href="https://near-faucet.io" target="_blank" rel="noreferrer" className="underline underline-offset-4">
@@ -153,7 +153,7 @@ export function Treasury({ company, account, busy, act }: { company: string; acc
 function Request({ p, account, busy, vote }: { p: Proposal; account: string; busy: boolean; vote(action: string): void }) {
   const t = (p.kind as Transfer).Transfer;
   return (
-    <li className="flex flex-wrap items-center justify-between gap-4 rounded-lg border-l-4 border-wait bg-card px-4 py-3">
+    <li className="flex flex-wrap items-center justify-between gap-4 rounded-sm border border-ink bg-wash px-4 py-3">
       <span>
         {t ? `${toNear(t.amount)} NEAR to ${t.receiver_id}` : p.description}
         <span className="block text-sm text-muted">Asked by {p.proposer}</span>

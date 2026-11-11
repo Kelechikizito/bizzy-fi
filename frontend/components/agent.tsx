@@ -103,7 +103,7 @@ function Summary({ n, company }: { n: Negotiation; company: string }) {
         ? `${t.quantity} × ${t.item} from ${other} for ${t.price_near} NEAR is over your limit. OK it above.`
         : `No deal with ${other}`;
   return (
-    <li className={`rounded-lg bg-card px-4 py-3 ${n.status === "waiting" ? "border-l-4 border-wait" : "border border-rule"}`}>
+    <li className={`rounded-sm border px-4 py-3 ${n.status === "waiting" ? "border-ink bg-wash" : "border-rule bg-card"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-medium">{headline}</p>
@@ -148,7 +148,7 @@ function Summary({ n, company }: { n: Negotiation; company: string }) {
 export function Badge({ proof }: { proof: Negotiation["proof"] }) {
   return (
     <details className="text-sm">
-      <summary className={`cursor-pointer list-none rounded-full px-3 py-1 ${proof.verified ? "bg-ink text-paper" : "border border-rule text-muted"}`}>
+      <summary className={`cursor-pointer list-none rounded-sm px-3 py-1 ${proof.verified ? "bg-ink text-xs font-medium uppercase text-white" : "border border-rule text-xs font-medium uppercase text-muted"}`}>
         {proof.verified ? "Verified private" : "Not verified"}
       </summary>
       <ul className="mt-2 max-w-xs space-y-1 text-muted">

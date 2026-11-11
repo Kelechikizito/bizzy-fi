@@ -5,6 +5,7 @@ import { AgentBrief, AskAgent } from "@/components/agent";
 import { ConnectAi } from "@/components/connect-ai";
 import { Connections } from "@/components/connections";
 import { DirectDeal } from "@/components/direct-deal";
+import { CountUp } from "@/components/motion";
 import { ProfileContacts } from "@/components/profile-contacts";
 import { ShareOnX } from "@/components/share";
 import { Treasury } from "@/components/treasury";
@@ -106,7 +107,7 @@ export default function Dashboard() {
     <Frame wide>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl font-bold tracking-tight">{id.split(".")[0]}</h1>
+          <h1 className="font-display text-4xl font-bold">{id.split(".")[0]}</h1>
           <p className="mt-1 text-muted">{data.company.about}</p>
           <p className="mt-2 flex flex-wrap gap-4 text-sm">
             <Link href={`/b/${id.split(".")[0]}`} className="text-muted underline underline-offset-4 hover:text-ink">
@@ -116,9 +117,9 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          <span className="rounded-full border border-rule px-3 py-1">Score {data.score}</span>
+          <span className="rounded-sm border border-rule px-3 py-1">Score {data.score}</span>
           {data.company.human ? (
-            <span className="rounded-full bg-ink px-3 py-1 text-paper">Verified human</span>
+            <span className="rounded-sm bg-ink px-2 py-1 text-xs font-medium uppercase text-white">Verified human</span>
           ) : (
             <WorldIdButton company={id} onDone={() => void reload(id)} />
           )}
@@ -127,7 +128,7 @@ export default function Dashboard() {
 
       {/* The breaker: the one control that always stops the agent. */}
       <section
-        className={`mt-8 flex flex-wrap items-center justify-between gap-6 rounded-2xl border-2 p-6 ${frozen ? "border-stop bg-stop/5" : "border-ink bg-card"}`}
+        className={`mt-8 flex flex-wrap items-center justify-between gap-6 rounded-sm border p-6 ${frozen ? "border-stop bg-stop/5" : "border-ink bg-card"}`}
       >
         <div>
           <p className="font-display text-2xl font-bold">{frozen ? "Agent is frozen" : "Agent is on"}</p>
@@ -147,10 +148,10 @@ export default function Dashboard() {
           <button
             onClick={() => void freeze()}
             disabled={!!busy}
-            className="group flex items-center gap-4 rounded-2xl bg-stop px-6 py-4 text-lg font-bold text-white shadow-[0_4px_0_#8f1526] transition-transform active:translate-y-1 active:shadow-none disabled:opacity-50"
+            className="group flex items-center gap-4 rounded-sm bg-stop px-6 py-4 text-lg font-bold text-white shadow-sm transition-colors hover:bg-stop/90 disabled:opacity-50"
           >
-            <span className="relative block h-9 w-5 rounded-full bg-white/25" aria-hidden>
-              <span className="absolute left-0.5 top-0.5 size-4 rounded-full bg-white transition-transform group-active:translate-y-4" />
+            <span className="relative block h-9 w-5 rounded-sm bg-white/25" aria-hidden>
+              <span className="absolute left-0.5 top-0.5 size-4 rounded-sm bg-white transition-transform group-active:translate-y-4" />
             </span>
             {busy ?? "Freeze agent"}
           </button>
@@ -166,15 +167,17 @@ export default function Dashboard() {
       <section className="mt-10 grid gap-6 sm:grid-cols-2">
         <div>
           <h2 className="text-muted">Money your agent can use</h2>
-          <p className="mt-1 font-display text-4xl font-bold">{toNear(data.available)} NEAR</p>
+          <p className="mt-1 font-display text-4xl font-bold tabular-nums">
+            <CountUp value={`${toNear(data.available)} NEAR`} />
+          </p>
         </div>
         <div>
           <h2 className="text-muted">Spent this week</h2>
           <p className="mt-1 font-display text-4xl font-bold">
-            {toNear(data.spent)} <span className="text-xl font-normal text-muted">of {toNear(data.limits.period_cap)} NEAR</span>
+            <CountUp value={toNear(data.spent)} /> <span className="text-xl font-normal text-muted">of {toNear(data.limits.period_cap)} NEAR</span>
           </p>
-          <div className="mt-3 h-2 rounded-full bg-rule">
-            <div className="h-2 rounded-full bg-ink" style={{ width: `${Math.min(100, (spent / (cap || 1)) * 100)}%` }} />
+          <div className="mt-3 h-2 rounded-sm bg-rule">
+            <div className="h-2 rounded-sm bg-ink transition-[width] duration-700 ease-out" style={{ width: `${Math.min(100, (spent / (cap || 1)) * 100)}%` }} />
           </div>
           <p className="mt-2 text-sm text-muted">
             Up to {toNear(data.limits.per_deal_cap)} NEAR a deal. {data.limits.allowlist_only ? "Only businesses you approve." : "Any business."}
@@ -195,7 +198,7 @@ export default function Dashboard() {
           <h2 className="font-display text-2xl font-bold">Waiting for your OK</h2>
           <ul className="mt-4 space-y-3">
             {data.approvals.map(([approval, a]) => (
-              <li key={approval} className="flex flex-wrap items-center justify-between gap-4 rounded-lg border-l-4 border-wait bg-card px-4 py-3">
+              <li key={approval} className="flex flex-wrap items-center justify-between gap-4 rounded-sm border border-ink bg-wash px-4 py-3">
                 <span>
                   {toNear(a.amount)} NEAR to <span className="font-medium">{a.deal.seller}</span>, over your limit
                 </span>

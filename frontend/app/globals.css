@@ -1,15 +1,46 @@
 @import "tailwindcss";
 
+/* The Glassnode-style system from DESIGN.md: monochrome, hairline borders, 2px corners, light and dark bands. */
 @theme inline {
-  --color-paper: #e9efec;
-  --color-card: #f6f9f7;
-  --color-ink: #17302a;
-  --color-muted: #52675f;
-  --color-rule: #c5d1cc;
-  --color-wait: #f2c94c;
-  --color-stop: #d7263d;
+  /* What the app's class names mean */
+  --color-paper: #edeff2; /* page canvas */
+  --color-card: #ffffff; /* cards, inputs */
+  --color-ink: #000000; /* text, primary buttons, emphasis borders */
+  --color-band: #1a1a1a; /* dark bands: hero statements, footer, announcement bar */
+  --color-muted: #5a5a5a; /* helper and body copy */
+  --color-rule: #dedfe1; /* hairline borders */
+  --color-wash: #e2e7fc; /* the only accent: soft wash for waiting/selected items and one highlighted word */
+  --color-chart: #4a6cf7; /* chart lines only */
+  --color-stop: #c8102e; /* Freeze and errors only: a safety signal, not branding */
+
+  /* The rest of the reference palette */
+  --color-graphite: #333333;
+  --color-slate: #666666;
+  --color-steel: #808080;
+  --color-fog: #a0a0a0;
+  --color-ash: #bfbfbf;
+  --color-surface: #f7f8fa;
+  --color-badge: #6f6f6f;
+
   --font-sans: var(--font-body);
   --font-display: var(--font-head);
+  --font-hero: var(--font-head);
+
+  --text-display: 56px;
+  --text-display--line-height: 1.2;
+
+  /* Every corner is 2px: the near-rectangular silhouette is the signature. */
+  --radius-xs: 2px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
+  --radius-2xl: 2px;
+  --radius-3xl: 2px;
+
+  /* Only primary buttons and the hero widget cast a shadow. */
+  --shadow-sm: 0 2px 4px 0 rgb(0 0 0 / 0.04);
+  --shadow-widget: 0 2px 4px 0 rgb(0 0 0 / 0.04), 0 8px 32px 0 rgb(0 0 0 / 0.08);
 }
 
 body {
@@ -17,8 +48,18 @@ body {
   color: var(--color-ink);
 }
 
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-head);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+}
+
 :focus-visible {
-  outline: 3px solid var(--color-ink);
+  outline: 2px solid var(--color-ink);
   outline-offset: 2px;
 }
 

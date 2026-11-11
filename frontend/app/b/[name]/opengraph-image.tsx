@@ -12,16 +12,16 @@ export default async function Image({ params }: { params: Promise<{ name: string
   const stats = p ? [`Score ${p.score}`, `${p.deals} deals paid`, `${p.partners} businesses`] : [];
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 72, background: "#e9efec", color: "#17302a", fontFamily: "Head" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 72, background: "#edeff2", color: "#1a1a1a", fontFamily: "Head" }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 32 }}>
           <span style={{ fontWeight: 700 }}>bizzy-fy</span>
-          {p?.human && <span style={{ background: "#17302a", color: "#e9efec", borderRadius: 999, padding: "6px 22px" }}>Verified human</span>}
+          {p?.human && <span style={{ background: "#1a1a1a", color: "#edeff2", borderRadius: 2, padding: "6px 22px" }}>Verified human</span>}
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
           <span style={{ fontSize: 112, fontWeight: 700, letterSpacing: -3 }}>{p?.name ?? "Unknown business"}</span>
-          <span style={{ fontSize: 34, color: "#52675f", marginTop: 8 }}>{(p?.about ?? "").slice(0, 90)}</span>
+          <span style={{ fontSize: 34, color: "#5a5a5a", marginTop: 8 }}>{(p?.about ?? "").slice(0, 90)}</span>
         </div>
-        <div style={{ display: "flex", gap: 24, borderTop: "6px solid #17302a", paddingTop: 28, fontSize: 40, fontWeight: 700 }}>
+        <div style={{ display: "flex", gap: 24, borderTop: "6px solid #1a1a1a", paddingTop: 28, fontSize: 40, fontWeight: 700 }}>
           {stats.map((s) => (
             <span key={s} style={{ marginRight: 32 }}>
               {s}

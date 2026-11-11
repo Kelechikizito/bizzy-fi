@@ -9,12 +9,12 @@ export const contentType = "image/png";
 export default async function Image() {
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 72, background: "#17302a", color: "#e9efec", fontFamily: "Head" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 72, background: "#1a1a1a", color: "#edeff2", fontFamily: "Head" }}>
         <span style={{ fontSize: 32, fontWeight: 700 }}>bizzy-fy</span>
         <span style={{ fontSize: 92, fontWeight: 700, lineHeight: 1.02, letterSpacing: -3 }}>Your agent haggles. Your money waits for delivery.</span>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 30, color: "#c5d1cc" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 30, color: "#a0a0a0" }}>
           <span>Private AI negotiation, escrow on NEAR</span>
-          <span style={{ background: "#f2c94c", color: "#17302a", borderRadius: 999, padding: "4px 20px", fontWeight: 700 }}>Verified private</span>
+          <span style={{ background: "#e2e7fc", color: "#1a1a1a", borderRadius: 2, padding: "4px 20px", fontWeight: 700 }}>Verified private</span>
         </div>
       </div>
     ),
