@@ -8,7 +8,7 @@ SIGN     := $(NET) $(KEYCHAIN) send
 POLICY   := target/near/policy/policy.wasm
 UPLOADED := target/near/policy.hash
 
-.PHONY: help build test accounts deploy upload-policy set-hash abis hash check
+.PHONY: help build test accounts deploy redeploy-registry upload-policy set-hash abis hash check
 
 help: ## List the commands
 	@grep -E '^[a-z-]+:.*##' Makefile | sed 's/:.*## /\t/'
@@ -27,6 +27,9 @@ accounts: ## Create the escrow and attester accounts
 deploy: build ## First deploy of the registry and escrow (only works once)
 	near contract deploy $(REGISTRY) use-file target/near/registry/registry.wasm with-init-call new json-args '{"owner":"$(REGISTRY)","escrow":"$(ESCROW)","attester":"$(ATTESTER)"}' prepaid-gas '100 Tgas' attached-deposit '0 NEAR' $(SIGN)
 	near contract deploy $(ESCROW) use-file target/near/escrow/escrow.wasm with-init-call new json-args '{"registry":"$(REGISTRY)"}' prepaid-gas '100 Tgas' attached-deposit '0 NEAR' $(SIGN)
+
+redeploy-registry: build ## Update the live registry code (state is kept)
+	near contract deploy $(REGISTRY) use-file target/near/registry/registry.wasm without-init-call $(SIGN)
 
 upload-policy: build ## Upload the shared policy code (BURNS about 20 NEAR)
 	@printf 'This burns about 20 NEAR. Type burn to continue: '; read ok; [ "$$ok" = burn ] || { echo Cancelled.; exit 1; }
