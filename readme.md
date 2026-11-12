@@ -56,6 +56,7 @@ sequenceDiagram
 - **Private terms, public guarantees.** Prices and items never touch the chain. The escrow holds only the amount and a salted fingerprint, so either side can later prove what was agreed without publishing it.
 - **Private trade graph.** Approved trading partners are stored as `sha256(secret salt + account)`, a different salt per direction, so nobody can read on chain who trades with whom.
 - **Reputation that only real deals can write.** Scores come from the escrow contract when a deal settles. A business cannot edit its own record.
+- **A track record you can't buy.** Each business's score is also a soulbound NFT (NEP-171): the registry builds the badge from the live reputation on every read, and every transfer fails with "Badges can't be moved". Any NEAR app or explorer can check it.
 
 ## Architecture
 
@@ -64,6 +65,8 @@ Three Rust contracts on testnet, a Next.js 16 app, and a small server that hosts
 ### Registry ([contracts/registry/src/lib.rs](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/registry/src/lib.rs#L120-L191))
 
 `bizzy-fy.testnet`. `create_company` creates `<name>.bizzy-fy.testnet` in one batch: create account, fund it, deploy the policy from a NEAR **global contract** by hash, and initialise it with the caller as guardian. The new account never gets a full-access key. It also holds the directory, World ID attestations (at most 3 companies per human), and reputation, which only the escrow may write ([`record_outcome`, L221](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/registry/src/lib.rs#L221-L250)).
+
+The registry is also the NFT contract for the **score badges** ("Bizzy-Fy Track Record", symbol BIZZY). There is one token per company, its id is the company account, and the company owns it. Nothing extra is stored: `nft_token`, `nft_tokens` and `nft_tokens_for_owner` build each badge from the current reputation, with the score in the title and the profile's share card as the picture. `nft_transfer` and `nft_transfer_call` always fail. New companies log a standard `nft_mint` event, and the owner logged one for the earlier companies with `emit_badges`. Check it: `near contract call-function as-read-only bizzy-fy.testnet nft_token json-args '{"token_id":"cups.bizzy-fy.testnet"}' network-config testnet now`. The badge has no `media_hash`, because its picture changes with the score.
 
 ### Policy ([contracts/policy/src/lib.rs](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/policy/src/lib.rs#L131-L192))
 
@@ -158,8 +161,8 @@ Contracts: `cd contracts && make test` (all tests and clippy), `make build`. `ma
 
 ## Testing
 
-- **126 contract tests pass** (`cargo test --workspace`), and `cargo clippy -D warnings` is clean:
-  - 118 unit tests: escrow 42, policy 49, registry 27;
+- **137 contract tests pass** (`cargo test --workspace`), and `cargo clippy -D warnings` is clean:
+  - 129 unit tests: escrow 42, policy 49, registry 38;
   - 8 sandbox tests on a real local NEAR node, including the full deal path through all three contracts.
 - **10 server tests** (`npm test`): offer parsing, the buyer's price cap, the TDX quote binding, NEP-413 login signatures, World ID nullifiers, sessions, encryption, who can read terms, settle timing, and contact-link safety.
 
@@ -168,6 +171,7 @@ What must never break, and is tested:
 - A frozen agent has no key on chain, so it cannot act at all.
 - The escrow pays out at most what was locked for each deal, and only once.
 - Only the escrow can change a company's reputation.
+- A score badge can never be transferred.
 - With "only approved businesses" on, a wrong salt is refused.
 
 ## Security review
@@ -196,6 +200,7 @@ The three contracts were reviewed against the `near-contract-audit` checklist ([
 | **Agent Economy**: "agents that earn, spend, negotiate" | Two agents negotiate and settle a purchase: [`negotiate()`](frontend/lib/server/negotiate.ts), [escrow](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/escrow/src/lib.rs#L92-L292), MCP for outside agents ([`app/api/mcp`](frontend/app/api/mcp/route.ts)) |
 | **Privacy & Private AI**: "private AI, TEE, NEAR AI Cloud" | Negotiation in NEAR AI Cloud's TEE with in-app attestation checks ([`ai.ts` L43-L96](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/frontend/lib/server/ai.ts#L43-L96)); encrypted terms with on-chain fingerprints; salted partner list |
 | **AI Security & Defense**: "spending limits, policy engines, sandboxed wallets, reputation… function call keys, TEE attestation" | [Policy contract](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/policy/src/lib.rs#L131-L283): caps, approvals, freeze, function-call key with gas allowance, no full-access key; reputation only the escrow writes |
+| **NFTs That Do Something**: "carry credentials… dynamic NFTs, NEP-171" | Each business's score is a soulbound NEP-171 badge, built live from on-chain reputation ([registry](contracts/registry/src/lib.rs), search `nft_token`); transfers always fail |
 | **Autonomous Business**: "procurement… humans only set the constraints" | The owner sets limits and approves exceptions; the agent buys, the escrow settles, the keeper ends timeouts |
 
 ## Roadmap

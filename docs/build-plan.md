@@ -46,6 +46,7 @@ Deadline: **2026-11-14 23:59 UTC**.
 - [ ] ~~17: Netting~~ skipped (README lists it as next)
 - [x] 18: Security audit pass (M3, L3 fixed in code, not deployed)
 - [ ] 19: Profile, referral, share card, landing, hosted deploy (Claude)
+- [x] 19d: Score badge NFT, soulbound (you: registry; Claude: UI, README). Submit with the `nfts` track too
 - [ ] 20: README (Claude)
 - [ ] 21: Demo video and X post
 - [ ] 22: Submit
@@ -284,6 +285,7 @@ The per-checkpoint sandbox tests joined into end-to-end runs of the full path: c
 # Day 7 (Fri 13 Nov): polish + ship
 
 - **Checkpoint 19 (Claude):** profile, referral link, share-to-X card, landing + FAQ, hosted deploy. Making the repo public needs your yes.
+- **Checkpoint 19d:** you make the registry answer the NFT standard methods, so each company has one score badge that can't be moved. Claude adds the badge to the profile, FAQ and README. Guide: `docs/checkpoints/checkpoint-19d-guide.md`.
 - **Checkpoint 20 (Claude):** README via the hackathon-readme skill.
 
 # Day 8 (Sat 14 Nov): demo + submit
