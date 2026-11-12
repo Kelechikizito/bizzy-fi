@@ -2,7 +2,12 @@
 
 // ─── 1. Imports ────────────────────────────────────────────────────────────
 use bizzy_types::{Limits, Outcome};
-use near_sdk::json_types::{Base58CryptoHash, U64};
+use near_contract_standards::non_fungible_token::Token;
+use near_contract_standards::non_fungible_token::events::NftMint;
+use near_contract_standards::non_fungible_token::metadata::{
+    NFT_METADATA_SPEC, NFTContractMetadata, TokenMetadata,
+};
+use near_sdk::json_types::{Base58CryptoHash, U64, U128};
 use near_sdk::serde_json::json;
 use near_sdk::store::{IterableMap, LookupMap, LookupSet};
 use near_sdk::{
@@ -16,6 +21,8 @@ const GAS_FOR_INIT: Gas = Gas::from_tgas(30);
 const GAS_FOR_CALLBACK: Gas = Gas::from_tgas(15);
 /// Most companies one World ID human may verify (sybil resistance).
 const MAX_COMPANIES_PER_HUMAN: u32 = 3;
+/// The website, for each badge's picture.
+const SITE: &str = "https://bizzy-fy.vercel.app";
 
 /// Storage prefixes, one per collection.
 #[near]
@@ -183,6 +190,12 @@ impl Contract {
                 r.referrals += 1;
             }
             let record = Self::new_company(guardian, about, referrer, env::block_timestamp());
+            NftMint {
+                owner_id: &company,
+                token_ids: &[company.as_str()],
+                memo: None,
+            }
+            .emit();
             self.companies.insert(company, record);
         } else {
             Promise::new(guardian).transfer(deposit).detach();
@@ -285,6 +298,114 @@ impl Contract {
             .map(|(id, company)| (id.clone(), company.clone()))
             .collect()
     }
+
+    // ── Score badge (NEP-171 NFT, soulbound) ──
+
+    /// The badge collection's name and standard version.
+    pub fn nft_metadata(&self) -> NFTContractMetadata {
+        NFTContractMetadata {
+            spec: NFT_METADATA_SPEC.to_string(),
+            name: "Bizzy-Fy Track Record".to_string(),
+            symbol: "BIZZY".to_string(),
+            icon: None,
+            base_uri: None,
+            reference: None,
+            reference_hash: None,
+        }
+    }
+
+    /// One company's badge; the token id is the company account.
+    pub fn nft_token(&self, token_id: String) -> Option<Token> {
+        self.badge(&token_id.parse().ok()?)
+    }
+
+    /// One page of all badges (default 50).
+    pub fn nft_tokens(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<Token> {
+        self.companies
+            .keys()
+            .skip(from_index.map_or(0, |i| i.0 as usize))
+            .take(limit.unwrap_or(50) as usize)
+            .filter_map(|id| self.badge(id))
+            .collect()
+    }
+
+    /// A company's badge as a list of 0 or 1.
+    pub fn nft_tokens_for_owner(
+        &self,
+        account_id: AccountId,
+        from_index: Option<U128>,
+        limit: Option<u64>,
+    ) -> Vec<Token> {
+        self.badge(&account_id)
+            .into_iter()
+            .skip(from_index.map_or(0, |i| i.0 as usize))
+            .take(limit.unwrap_or(50) as usize)
+            .collect()
+    }
+
+    /// One badge per company.
+    pub fn nft_total_supply(&self) -> U128 {
+        U128(self.companies.len().into())
+    }
+
+    /// Logs `nft_mint` for a page of companies made before badges existed. Owner only, run once.
+    pub fn emit_badges(&self, from_index: u32, limit: u32) {
+        require!(
+            env::predecessor_account_id() == self.owner,
+            "Only the owner can do this"
+        );
+        let ids: Vec<&AccountId> = self
+            .companies
+            .keys()
+            .skip(from_index as usize)
+            .take(limit as usize)
+            .collect();
+        let tokens: Vec<[&str; 1]> = ids.iter().map(|id| [id.as_str()]).collect();
+        let events: Vec<NftMint> = ids
+            .iter()
+            .zip(&tokens)
+            .map(|(id, token_ids)| NftMint {
+                owner_id: id,
+                token_ids,
+                memo: None,
+            })
+            .collect();
+        if !events.is_empty() {
+            NftMint::emit_many(&events);
+        }
+    }
+
+    /// Soulbound: a score you could sell would be worthless.
+    #[payable]
+    #[allow(unused_variables)]
+    pub fn nft_transfer(
+        &mut self,
+        receiver_id: AccountId,
+        token_id: String,
+        approval_id: Option<u64>,
+        memo: Option<String>,
+    ) {
+        env::panic_str("Badges can't be moved")
+    }
+
+    /// Soulbound, like `nft_transfer`.
+    #[payable]
+    #[allow(unused_variables)]
+    pub fn nft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        token_id: String,
+        approval_id: Option<u64>,
+        memo: Option<String>,
+        msg: String,
+    ) -> bool {
+        env::panic_str("Badges can't be moved")
+    }
+
+    /// 1 for a company, 0 for anyone else.
+    pub fn nft_supply_for_owner(&self, account_id: AccountId) -> U128 {
+        U128(self.companies.contains_key(&account_id).into())
+    }
 }
 
 // ─── 5. Private helpers ────────────────────────────────────────────────────
@@ -307,6 +428,33 @@ impl Contract {
             referrals: 0,
             reputation: Reputation::default(),
         }
+    }
+
+    /// A company's badge, built from its reputation; None if unknown.
+    fn badge(&self, id: &AccountId) -> Option<Token> {
+        let c = self.companies.get(id)?;
+        let r = &c.reputation;
+        let name = id.as_str().split('.').next().unwrap_or_default();
+        let score = self.get_score(id.clone());
+        let metadata = TokenMetadata {
+            title: Some(format!("{name}: score {score}")),
+            description: Some(format!(
+                "{} deals paid, {} businesses, {} disputes lost. Written only by the Bizzy-Fy escrow.",
+                r.on_time + r.late,
+                r.counterparties,
+                r.disputes_lost
+            )),
+            media: Some(format!("{SITE}/b/{name}/opengraph-image")),
+            issued_at: Some((c.created_at.0 / 1_000_000).to_string()),
+            extra: Some(json!({ "score": score, "reputation": r }).to_string()),
+            ..Default::default()
+        };
+        Some(Token {
+            token_id: id.to_string(),
+            owner_id: id.clone(),
+            metadata: Some(metadata),
+            approved_account_ids: Some(Default::default()),
+        })
     }
 }
 
@@ -712,5 +860,150 @@ mod tests {
             Some("beta"),
         );
         assert_eq!(company(&contract, "beta").referrals, 1);
+    }
+
+    /// Test 27: the badge shows the company, its score and its picture.
+    #[test]
+    fn badge_shows_score() {
+        let mut contract = ready();
+        add_company(&mut contract, "acme");
+        report(&mut contract, "acme", "beta", Outcome::OnTime);
+        let token = contract.nft_token(company_id("acme").to_string()).unwrap();
+        assert_eq!(token.owner_id, company_id("acme"));
+        let metadata = token.metadata.unwrap();
+        assert_eq!(metadata.title.unwrap(), "acme: score 13");
+        assert!(metadata.media.unwrap().ends_with("/b/acme/opengraph-image"));
+    }
+
+    /// Test 28: unknown or invalid ids give no badge, without panicking.
+    #[test]
+    fn badge_missing_is_none() {
+        let contract = ready();
+        assert!(contract.nft_token(company_id("acme").to_string()).is_none());
+        assert!(contract.nft_token("not an account!".into()).is_none());
+    }
+
+    /// Test 31: one badge per company, none for strangers.
+    #[test]
+    fn badge_supply() {
+        let mut contract = ready();
+        for name in ["aa", "bb", "cc"] {
+            add_company(&mut contract, name);
+        }
+        assert_eq!(contract.nft_total_supply(), U128(3));
+        assert_eq!(contract.nft_supply_for_owner(company_id("aa")), U128(1));
+        assert_eq!(
+            contract.nft_supply_for_owner(account("stranger.testnet")),
+            U128(0)
+        );
+        assert_eq!(
+            contract.nft_tokens(Some(U128(1)), Some(1))[0].token_id,
+            company_id("bb").to_string()
+        );
+    }
+
+    /// Test 32: a company owns its badge; a stranger owns none.
+    #[test]
+    fn badge_for_owner() {
+        let mut contract = ready();
+        add_company(&mut contract, "acme");
+        let tokens = contract.nft_tokens_for_owner(company_id("acme"), None, None);
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0].token_id, company_id("acme").to_string());
+        assert!(
+            contract
+                .nft_tokens_for_owner(company_id("acme"), Some(U128(1)), None)
+                .is_empty()
+        );
+        assert!(
+            contract
+                .nft_tokens_for_owner(account("stranger.testnet"), None, None)
+                .is_empty()
+        );
+    }
+
+    /// Test 29: a badge can't be transferred.
+    #[test]
+    #[should_panic(expected = "Badges can't be moved")]
+    fn badge_transfer_fails() {
+        let mut contract = ready();
+        add_company(&mut contract, "acme");
+        set_caller_with_input(company_id("acme").as_str(), vec![]);
+        contract.nft_transfer(
+            account("buyer.testnet"),
+            company_id("acme").to_string(),
+            None,
+            None,
+        );
+    }
+
+    /// Test 30: nor transferred with a call.
+    #[test]
+    #[should_panic(expected = "Badges can't be moved")]
+    fn badge_transfer_call_fails() {
+        let mut contract = ready();
+        add_company(&mut contract, "acme");
+        set_caller_with_input(company_id("acme").as_str(), vec![]);
+        contract.nft_transfer_call(
+            account("market.testnet"),
+            company_id("acme").to_string(),
+            None,
+            None,
+            String::new(),
+        );
+    }
+
+    /// Test 33: a new company logs one nft_mint event.
+    #[test]
+    fn callback_logs_mint() {
+        let mut contract = ready();
+        callback(&mut contract, PromiseResult::Successful(vec![]), None);
+        let logs = near_sdk::test_utils::get_logs();
+        assert_eq!(logs.len(), 1);
+        assert!(logs[0].starts_with("EVENT_JSON:") && logs[0].contains("\"nft_mint\""));
+    }
+
+    /// Test 34: a failed creation logs nothing.
+    #[test]
+    fn failed_callback_logs_nothing() {
+        let mut contract = ready();
+        callback(&mut contract, PromiseResult::Failed, None);
+        assert!(near_sdk::test_utils::get_logs().is_empty());
+    }
+
+    /// Test 35: only the owner can emit badges.
+    #[test]
+    #[should_panic(expected = "Only the owner can do this")]
+    fn stranger_cannot_emit_badges() {
+        let contract = ready();
+        set_caller_with_input("stranger.testnet", vec![]);
+        contract.emit_badges(0, 10);
+    }
+
+    /// Test 36: the badge follows the score down.
+    #[test]
+    fn badge_follows_score() {
+        let mut contract = ready();
+        add_company(&mut contract, "acme");
+        report(&mut contract, "acme", "beta", Outcome::DisputeLost);
+        let token = contract.nft_token(company_id("acme").to_string()).unwrap();
+        assert_eq!(token.metadata.unwrap().title.unwrap(), "acme: score 0");
+    }
+
+    /// Test 37: the owner logs one event for a page of existing companies.
+    #[test]
+    fn owner_emits_badges() {
+        let mut contract = ready();
+        for name in ["aa", "bb"] {
+            add_company(&mut contract, name);
+        }
+        set_caller_with_input(OWNER, vec![]);
+        contract.emit_badges(0, 10);
+        let logs = near_sdk::test_utils::get_logs();
+        assert_eq!(logs.len(), 1);
+        assert!(
+            logs[0].contains(company_id("aa").as_str())
+                && logs[0].contains(company_id("bb").as_str())
+        );
     }
 }
