@@ -7,7 +7,7 @@
       "compiler": "rustc 1.96.0",
       "builder": "cargo-near cargo-near-build 0.11.5"
     },
-    "wasm_hash": "7u3Ay13nVZwR1xioyx1xtwxMhtYJSFSggWxNQYgLN4m4"
+    "wasm_hash": "U7GYhtfrVxtDZF2AHRSt9ph6yrsGaKEvUVTok7DQCWq"
   },
   "body": {
     "functions": [
@@ -345,6 +345,9 @@
         "name": "set_policy_hash",
         "doc": " Sets the hash of the policy code, uploaded once as a global contract. Owner only.\n New companies use that exact code; by hash, nobody can ever change it.",
         "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
         "params": {
           "serialization_type": "json",
           "args": [
