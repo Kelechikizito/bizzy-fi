@@ -34,7 +34,7 @@ const TECH = [
     line: "Negotiations sealed in a TEE, checked every time",
   },
   {
-    label: "Proof of personhood",
+    label: "Proof of human",
     name: "World ID",
     line: "One verified human behind each business",
   },
@@ -511,16 +511,16 @@ export default function Home() {
           {TECH.map((t, i) => (
             <motion.li
               key={t.name}
-              className="group cursor-default transition-colors duration-300 lg:border-l lg:border-graphite lg:pl-6 lg:first:border-l-0 lg:first:pl-0 lg:hover:border-white"
+              className="group min-w-0 cursor-default transition-colors duration-300 lg:border-l lg:border-graphite lg:px-5 lg:first:border-l-0 lg:first:pl-0 lg:hover:border-white"
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.5, delay: i * 0.1, ease: EASE }}
             >
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-fog transition-colors duration-300 group-hover:text-white">
+              <p className="whitespace-nowrap text-xs font-medium uppercase tracking-[0.2em] text-fog transition-colors duration-300 group-hover:text-white">
                 0{i + 1} · {t.label}
               </p>
-              <p className="mt-4 whitespace-nowrap font-hero text-3xl font-bold leading-none transition-transform duration-300 ease-out group-hover:-translate-y-1 xl:text-[34px]">
+              <p className="mt-4 text-balance font-hero text-3xl font-bold leading-tight transition-transform duration-300 ease-out group-hover:-translate-y-1 lg:text-2xl xl:text-[28px]">
                 {t.name}
               </p>
               <span
