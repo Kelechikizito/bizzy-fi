@@ -180,7 +180,7 @@ The three contracts were reviewed against the `near-contract-audit` checklist ([
 
 ## Known issues
 
-- **The policy fix isn't on testnet yet.** Uploading new policy code as a global contract burns about 20 test NEAR. Existing testnet companies run the earlier version, where the agent may also call `confirm`. New code applies to companies created after the upload.
+- **Older demo companies run the earlier policy code.** The audit fix (the agent may no longer call `confirm`) is live on testnet, but shared policy code only reaches companies created after it was uploaded. hh, cafe and cups keep the earlier version.
 - **The escrow pays for deal storage.** A company could open and cancel many 0.1 NEAR deals to use up the escrow's spare NEAR and block new deals. Fix: keep a small fee per deal, or delete finished deals. For now the escrow is kept funded.
 - **A buyer can back out of an accepted deal by disputing before delivery.** The refund comes after an hour, and the seller can't mark delivery while disputed. A fix is to let the seller still deliver during that dispute.
 - **The seller's lowest price is kept by the AI, not code.** In one run it went 0.015 NEAR under its notes. A per-unit floor field would let code enforce it, as it already does for the buyer.
@@ -198,13 +198,34 @@ The three contracts were reviewed against the `near-contract-audit` checklist ([
 | **AI Security & Defense**: "spending limits, policy engines, sandboxed wallets, reputation… function call keys, TEE attestation" | [Policy contract](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/policy/src/lib.rs#L131-L283): caps, approvals, freeze, function-call key with gas allowance, no full-access key; reputation only the escrow writes |
 | **Autonomous Business**: "procurement… humans only set the constraints" | The owner sets limits and approves exceptions; the agent buys, the escrow settles, the keeper ends timeouts |
 
-## What I'd build next
+## Roadmap
 
-- **Credit from trade history.** Every settled deal is already an on-chain, unforgeable payment record. A lender could extend working capital to a business with a strong record, which matters most where banks don't serve small traders.
-- **Real KYB/AML.** The registry already has a `Kyb` attestation slot. Hooking it to a provider such as Sumsub or Persona turns the "business check" quest from coming-next to real.
-- **Netting.** Businesses that trade both ways would settle only the difference each period, with deposits as collateral.
+The site has the same list at `/roadmap` ([source](frontend/app/roadmap/page.tsx)), one linkable section per item.
+
+**Before mainnet**
+
+- **Mainnet launch.** Outside audit, then delete the registry and escrow full-access keys. A small per-deal fee so escrow storage pays for itself. Review, dispute and freeze windows of days, not one hour.
+- **Confidential treasury.** Each business's treasury becomes a Trezu confidential treasury on NEAR's private shard, so balances and payees stay hidden ([plan](docs/confidential-treasury.md)).
+- **Google and social login on mainnet.** NEAR Auth approves our domain and one setting turns it on. Add email and passkeys.
+
+**Next: Know your business (KYB)**
+
+The registry already has a `Kyb` attestation, and profiles show it as quest 2 of 4. The plan, in order:
+
+1. **Domain check.** The owner adds a DNS TXT record to prove they control the business website. The backend attests `Kyb` with only a fingerprint of the domain.
+2. **Company register lookup** (Companies House, Nigeria's CAC, OpenCorporates): registered, active, founding date.
+3. **Provider KYB** (Sumsub, Persona or Middesk): owners and directors, the signing person matched to a director, and sanctions screening re-run daily.
+4. **Private by design.** No documents stored by us. The provider result is checked inside a TEE, and only "passed", level, checker and expiry go on chain. Verifiable credentials let a business show a partner only the facts a deal needs.
+5. **On-chain rules.** Attestations with level, expiry and revocation; several trusted checkers instead of only our backend; and a policy rule such as "my agent only deals with verified businesses above 1,000 NEAR". If a business is sanctioned later, its attestation is revoked and agents stop dealing with it.
+
+The result: verify once and every partner trusts it, so vendor onboarding drops from about three weeks to one click.
+
+**Later**
+
+- **Netting.** Businesses that trade both ways settle only the difference each period, with deposits as collateral.
 - **Stablecoin deals and NEAR Intents.** Price in USDC and let the buyer pay from any chain.
-- **List agents on NEAR's Agent Market,** so a business's agent can also be hired by others.
+- **Credit from trade history.** Every settled deal is an on-chain payment record that can't be faked. Lenders could extend working capital to businesses with a strong record, which matters most where banks don't serve small traders.
+- **Agents on NEAR's Agent Market,** so a business's agent can also be hired by others.
 
 ## Team · License
 

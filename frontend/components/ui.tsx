@@ -30,6 +30,9 @@ export function Frame({ children, wide, bare }: { children: ReactNode; wide?: bo
             <Link href="/top" className="hidden hover:text-ink sm:inline">
               Top businesses
             </Link>
+            <Link href="/roadmap" className="hidden hover:text-ink sm:inline">
+              Roadmap
+            </Link>
             {account ? (
               <>
                 <button onClick={() => void signOut().then(() => router.push("/"))} className="hover:text-ink">
@@ -61,6 +64,9 @@ export function Frame({ children, wide, bare }: { children: ReactNode; wide?: bo
             <p className="font-medium text-white">Product</p>
             <Link href="/top" className="block hover:text-white">
               Top businesses
+            </Link>
+            <Link href="/roadmap" className="block hover:text-white">
+              Roadmap
             </Link>
             <Link href="/#faq" className="block hover:text-white">
               Frequently asked questions
