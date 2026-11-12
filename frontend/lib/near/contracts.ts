@@ -26,6 +26,8 @@ export const companyId = (name: string) => `${name}.${REGISTRY_ID}`;
 
 export const txUrl = (hash: string) => `${EXPLORER_URL}/txns/${hash}`;
 export const accountUrl = (id: string) => `${EXPLORER_URL}/address/${id}`;
+/** A company's soulbound score badge (NFT) on the explorer. */
+export const badgeUrl = (id: string) => `${EXPLORER_URL}/nft-token/${REGISTRY_ID}/${id}`;
 
 /** How long the buyer can review a delivery, and how long a dispute can run (matches the escrow). */
 export const REVIEW_WINDOW_MS = 60 * 60 * 1000;

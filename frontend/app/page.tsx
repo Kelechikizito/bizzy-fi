@@ -73,6 +73,10 @@ const FAQ = [
     a: "The rules live in your contract, not in the AI. The agent's key can only open deals within your limits and can't pay out a delivery. The guardian (you) can freeze it at any time.",
   },
   {
+    q: "Why is the score an NFT that can't be moved?",
+    a: "So it can't be bought. Each business has one badge NFT, read straight from its deal record on NEAR. Only the escrow contract changes that record, and any attempt to transfer the badge fails. Other NEAR apps and explorers can read it without asking us.",
+  },
+  {
     q: "Can I use Claude or Cursor instead of the built-in agent?",
     a: "Yes. Make a connection key in your dashboard and add Bizzy-Fy as an MCP server. Your AI can then find businesses, buy, and check your deals, always within your agent's limits. You can turn the key off at any time.",
   },
@@ -495,6 +499,76 @@ export default function Home() {
               </motion.li>
             ))}
           </ol>
+        </div>
+      </section>
+
+      <section className="border-t border-rule py-20">
+        <div
+          className={`${WRAP} grid items-center gap-12 lg:grid-cols-[1fr_1.1fr]`}
+        >
+          <Reveal>
+            <h2 className={H2}>A track record nobody can buy</h2>
+            <p className="mt-3 max-w-prose text-muted">
+              Every business gets one NFT that shows its score. Only the escrow
+              contract can write to it, when a real deal settles, and it can
+              never be sold or moved to another account. Any NEAR app or
+              explorer can check it.
+            </p>
+            <dl className="mt-6 divide-y divide-rule border-y border-rule text-sm">
+              {[
+                ["+10", "each deal delivered on time"],
+                ["+5", "each deal delivered late"],
+                ["+3", "each new business dealt with"],
+                ["−20", "each dispute lost"],
+              ].map(([points, what]) => (
+                <div key={what} className="flex gap-4 py-2">
+                  <dt className="w-12 shrink-0 font-mono">{points}</dt>
+                  <dd className="text-muted">{what}</dd>
+                </div>
+              ))}
+            </dl>
+          </Reveal>
+          {/* cups's real numbers on testnet, as its badge shows them. */}
+          <Reveal
+            delay={0.15}
+            className="rounded-sm border border-rule bg-card shadow-widget"
+          >
+            <figure>
+              <figcaption className="flex items-center justify-between gap-3 border-b border-rule px-5 py-3 text-sm">
+                <span className="font-medium">Bizzy-Fy Track Record</span>
+                <span className="rounded-sm bg-ink px-2 py-1 text-xs font-medium uppercase text-white">
+                  Soulbound NFT
+                </span>
+              </figcaption>
+              <div className="flex items-end justify-between gap-4 px-5 pt-6">
+                <p className="font-hero text-4xl font-bold">cups</p>
+                <p className="text-right">
+                  <span className="block text-xs uppercase text-badge">
+                    Score
+                  </span>
+                  <span className="font-hero text-5xl font-bold">36</span>
+                </p>
+              </div>
+              <dl className="mt-6 grid grid-cols-3 gap-4 border-t border-rule px-5 py-4 text-sm">
+                {[
+                  ["3", "deals paid"],
+                  ["2", "businesses"],
+                  ["0", "disputes lost"],
+                ].map(([n, what]) => (
+                  <div key={what}>
+                    <dt className="text-muted">{what}</dt>
+                    <dd className="text-xl font-bold">{n}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="flex flex-wrap items-center justify-between gap-2 border-t border-rule bg-surface px-5 py-3 font-mono text-xs">
+                <span>nft_transfer(cups → anyone)</span>
+                <span className="text-muted">
+                  ✕ &ldquo;Badges can&apos;t be moved&rdquo;
+                </span>
+              </p>
+            </figure>
+          </Reveal>
         </div>
       </section>
 

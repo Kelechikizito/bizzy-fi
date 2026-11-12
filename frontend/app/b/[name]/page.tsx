@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { CountUp } from "@/components/motion";
 import { ShareOnX } from "@/components/share";
 import { Frame } from "@/components/ui";
-import { accountUrl } from "@/lib/near/contracts";
+import { accountUrl, badgeUrl } from "@/lib/near/contracts";
 import { loadProfile } from "@/lib/near/profile";
 import { getAvatar } from "@/lib/server/avatar";
 import { contactLinks, getContacts } from "@/lib/server/contacts";
@@ -120,6 +120,22 @@ async function Profile({
           See {p.name} on NEAR
         </a>
         . Prices and what was bought stay private.
+      </p>
+      <p className="mt-2 text-sm text-muted">
+        <span className="mr-2 rounded-sm bg-ink px-2 py-0.5 text-xs font-medium uppercase text-white">
+          Soulbound NFT
+        </span>
+        This score is also {p.name}&apos;s badge NFT, which can never be sold
+        or moved.{" "}
+        <a
+          href={badgeUrl(p.id)}
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-4"
+        >
+          See the badge
+        </a>
+        .
       </p>
 
       <section className="mt-10 grid gap-10 sm:grid-cols-2">
