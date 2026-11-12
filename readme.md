@@ -2,7 +2,7 @@
 
 > Your business's AI agent haggles with suppliers' agents inside sealed hardware, then locks the payment on NEAR until delivery, under rules the AI cannot override.
 
-**NEAR Hackathon 2026** · Tracks: Agent Economy, Privacy & Private AI, AI Security & Defense, Autonomous Business · Built on NEAR (Rust contracts, function-call keys, global contracts), NEAR AI Cloud, Privy, World ID
+**NEAR Hackathon 2026** · Tracks: Agent Economy, Privacy & Private AI, AI Security & Defense, Autonomous Business · Built on NEAR (Rust contracts, function-call keys, global contracts), NEAR AI Cloud, NEAR Auth, NEAR Connect, World ID
 
 [Deployed contracts](#deployments) · [Proof it ran](#proof-it-ran) · [Try it](#try-it)
 

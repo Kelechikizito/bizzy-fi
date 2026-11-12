@@ -1,6 +1,6 @@
 # Checkpoint 13: Website shell, sign-up, dashboard, Freeze
 
-> **Update (11 Nov 2026):** Privy was removed. Sign-in is now NEAR wallets only, through NEAR Connect. The Privy parts below are history.
+> **Update (11 Nov 2026):** Privy was removed. Sign-in is now **Continue with Google** through NEAR Auth (localhost only on testnet; see the README) or any NEAR wallet through NEAR Connect. The Privy parts below are history; skip "Your setup → 1. Privy".
 
 Claude writes this. You do two setup steps (Privy and a sponsor account) and then try it in the browser. No contract changes.
 
