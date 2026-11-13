@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { EASE, Reveal } from "@/components/motion";
 import { Frame, GHOST, PRIMARY } from "@/components/ui";
+import { IPFS_GATEWAY, txUrl } from "@/lib/near/contracts";
 import { useSession } from "@/lib/wallet";
 
 const STEPS = [
@@ -66,7 +67,7 @@ const FAQ = [
   },
   {
     q: "What if the seller never delivers?",
-    a: "After the delivery deadline, the money goes back to you automatically. If they mark it delivered and it isn't right, you have an hour to report a problem, and the money stays locked until you both agree a split.",
+    a: "After the delivery deadline, the money goes back to you(the buyer) automatically. If they mark it delivered and it isn't right, you have an hour to report a problem, and the money stays locked until you both agree a split.",
   },
   {
     q: "What stops a rogue or hacked agent?",
@@ -99,8 +100,8 @@ const PROBLEMS = [
   {
     problem: "Businesses don't trust each other",
     example:
-      "So every deal starts with a deposit, a guarantee or a long wait, and someone always carries the risk.",
-    fix: "The money sits in an escrow contract that neither side controls. It goes to the seller on delivery, or back to the buyer if they don't deliver.",
+      "Every deal starts with a deposit, a guarantee or a long wait, and someone always carries the risk.",
+    fix: "The money sits in an escrow contract that neither party controls. It goes to the seller on delivery, or back to the buyer if they don't deliver.",
   },
   {
     problem: "Contracts, lawyers and paperwork",
@@ -112,7 +113,7 @@ const PROBLEMS = [
     problem: "Deposits paid to suppliers you can't check",
     example:
       "A food importer wired a deposit overseas and got neither the goods nor the money back.",
-    fix: "Nothing reaches the seller until you confirm delivery. Past the deadline, anyone can trigger your refund.",
+    fix: "Nothing reaches the seller until you confirm delivery. Past the deadline ? anyone can trigger your refund.",
   },
   {
     problem: "Chasing late payments",
@@ -123,8 +124,8 @@ const PROBLEMS = [
   {
     problem: "No privacy",
     example:
-      "Prices, margins and who you buy from are exactly what competitors want to see.",
-    fix: "Negotiations run in sealed hardware nobody can read. Terms are stored encrypted, and the chain keeps only a fingerprint. Even your partner list is scrambled.",
+      "Prices, margins and who you buy from aren't exactly hidden from third-parties.",
+    fix: "Negotiations run in sealed hardware nobody can read. Terms are stored encrypted, and the chain keeps only a fingerprint.",
   },
   {
     problem: "Slow, manual back-and-forth",
@@ -140,7 +141,7 @@ const PROBLEMS = [
   {
     problem: "Fake businesses and fraud",
     example: "Anyone can claim to be a reliable supplier.",
-    fix: "Scores are written only when real deals settle, owners can prove they're human with World ID, and every agent has an owner who can freeze it at once.",
+    fix: "Scores are written only when real deals settle, owners can prove they're human with World ID, and every agent has an owner who can freeze it immediately.",
   },
 ];
 
@@ -379,7 +380,15 @@ function OfferChart() {
           <span className="font-medium">0.35 NEAR locked in escrow</span> until
           cups delivers
         </span>
-        <span className="text-xs text-muted">testnet, 10 Nov</span>
+        <a
+          href={txUrl("BpiGHYAMrJfUXs2Q4x8jnNk5FvLEbUR9r6rMMqAZoqgh")}
+          target="_blank"
+          rel="noreferrer"
+          title="The transaction that locked the 0.35 NEAR"
+          className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+        >
+          testnet, 10 Nov
+        </a>
       </motion.p>
     </figure>
   );
@@ -447,7 +456,7 @@ export default function Home() {
           </Reveal>
           <div className="mt-10 rounded-sm border border-rule bg-card">
             <div className="hidden grid-cols-2 gap-6 border-b border-rule px-4 py-2 text-xs font-medium uppercase text-badge sm:grid">
-              <span>The problem</span>
+              <span>The problem with traditional solutions</span>
               <span>How Bizzy-Fy fixes it</span>
             </div>
             <ul className="divide-y divide-rule">
@@ -507,7 +516,7 @@ export default function Home() {
           className={`${WRAP} grid items-center gap-12 lg:grid-cols-[1fr_1.1fr]`}
         >
           <Reveal>
-            <h2 className={H2}>A track record nobody can buy</h2>
+            <h2 className={H2}>A track record businesses can&apos;t buy</h2>
             <p className="mt-3 max-w-prose text-muted">
               Every business gets one NFT that shows its score. Only the escrow
               contract can write to it, when a real deal settles, and it can
@@ -541,17 +550,28 @@ export default function Home() {
                 </span>
               </figcaption>
               <div className="flex items-end justify-between gap-4 px-5 pt-6">
-                <p className="font-hero text-4xl font-bold">cups</p>
+                <p className="flex items-center gap-4">
+                  {/* cups's live badge: Silver (score 30–99), the same IPFS image the registry returns. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a fixed IPFS image */}
+                  <img
+                    src={`${IPFS_GATEWAY}/bafkreiaidntxqzmph5fvqhbiwvlb3e62tzeenvyvxzk5xdfourtxducbum`}
+                    alt="cups's Silver score badge"
+                    width={72}
+                    height={72}
+                    className="rounded-sm"
+                  />
+                  <span className="font-hero text-4xl font-bold">cups</span>
+                </p>
                 <p className="text-right">
                   <span className="block text-xs uppercase text-badge">
                     Score
                   </span>
-                  <span className="font-hero text-5xl font-bold">36</span>
+                  <span className="font-hero text-5xl font-bold">46</span>
                 </p>
               </div>
               <dl className="mt-6 grid grid-cols-3 gap-4 border-t border-rule px-5 py-4 text-sm">
                 {[
-                  ["3", "deals paid"],
+                  ["4", "deals paid"],
                   ["2", "businesses"],
                   ["0", "disputes lost"],
                 ].map(([n, what]) => (
@@ -576,7 +596,7 @@ export default function Home() {
         <Reveal className={`${WRAP} pt-20 text-center`}>
           <h2 className={H2}>What Bizzy-Fy runs on</h2>
           <p className="mx-auto mt-3 max-w-prose text-fog">
-            Five pieces of technology, each doing one job you can check.
+            Five pieces of technology, each doing separate tasks.
           </p>
         </Reveal>
         <ul
@@ -617,9 +637,9 @@ export default function Home() {
             <h2 className={H2}>Or bring your own AI</h2>
             <p className="mt-3 max-w-prose text-muted">
               Already work in Claude or Cursor? Connect it to Bizzy-Fy over MCP
-              and just ask it to buy. It gets your agent&apos;s powers and
-              nothing more: the same limits, the same approvals, the same freeze
-              button, and it can&apos;t pay out a delivery.
+              and just ask it to buy. It gets the same limits, the same
+              approvals, the same freeze button, and it can&apos;t pay out a
+              delivery.
             </p>
             <dl className="mt-6 divide-y divide-rule border-y border-rule text-sm">
               {[

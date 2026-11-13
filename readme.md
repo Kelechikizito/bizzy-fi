@@ -2,7 +2,17 @@
 
 > Your business's AI agent haggles with suppliers' agents inside sealed hardware, then locks the payment on NEAR until delivery, under rules the AI cannot override.
 
-**NEAR HACKATHON 2026** · Tracks: Agent Economy (`agents`), Privacy & Private AI (`privacy`), AI Security & Defense (`security`), Autonomous Business (`business`), NFTs That Do Something (`nfts`) · Built on NEAR (Rust contracts, function-call keys, global contracts, NEP-171), NEAR AI Cloud, NEAR Auth, NEAR Connect, World ID
+**NEAR HACKATHON 2026** ·
+
+Tracks:
+
+- Agent Economy (`agents`)
+- Privacy & Private AI (`privacy`)
+- AI Security & Defense (`security`)
+- Autonomous Business (`business`)
+- NFTs That Do Something (`nfts`) ·
+
+Built on NEAR (Rust contracts, function-call keys, global contracts, NEP-171), NEAR AI Cloud, NEAR Auth, NEAR Connect, World ID
 
 [Live app](https://bizzy-fy.vercel.app) · [Leaderboard with badges](https://bizzy-fy.vercel.app/top) · [Deployed contracts](#deployments) · [Proof it ran](#proof-it-ran) · [Try it](#try-it) · [Customer discovery](#customer-discovery)
 
@@ -64,21 +74,21 @@ We checked the problem before and while building. Raw notes: [`reddit-search.md`
 
 **1. Reddit and forum search, 5 themes** (mostly Reddit mirrors, plus Nigerian sources for cross-border payments):
 
-| Theme | What people said |
-|---|---|
-| Deposits to suppliers you can't check | A Kuwait food importer wired a deposit to a Vietnamese supplier and can't get the goods or the money back. An Alibaba buyer asked how to check a supplier before paying 30% up front. |
-| Late B2B payment | An agency owner waited three months for a $3,400 invoice that was "being processed". "Net 30" takes about 40 days. |
-| Procurement friction | Vendor onboarding takes about 3 weeks even with complete documents (r/procurement, quoted secondhand). |
-| AI agents with money | "Giving an LLM unlimited bank access is terrifying." A research agent in a retry loop can burn $200 in minutes, and caps don't stop it "buying the wrong thing 100 times". The flow builders asked for: request → policy check → human approval if needed → limited credential → purchase. |
-| Nigeria cross-border | Bank FX spreads are a hidden cost for importers, and suppliers' banks add checks to payments from Nigeria. |
+| Theme                                 | What people said                                                                                                                                                                                                                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Deposits to suppliers you can't check | A Kuwait food importer wired a deposit to a Vietnamese supplier and can't get the goods or the money back. An Alibaba buyer asked how to check a supplier before paying 30% up front.                                                                                                      |
+| Late B2B payment                      | An agency owner waited three months for a $3,400 invoice that was "being processed". "Net 30" takes about 40 days.                                                                                                                                                                         |
+| Procurement friction                  | Vendor onboarding takes about 3 weeks even with complete documents (r/procurement, quoted secondhand).                                                                                                                                                                                     |
+| AI agents with money                  | "Giving an LLM unlimited bank access is terrifying." A research agent in a retry loop can burn $200 in minutes, and caps don't stop it "buying the wrong thing 100 times". The flow builders asked for: request → policy check → human approval if needed → limited credential → purchase. |
+| Nigeria cross-border                  | Bank FX spreads are a hidden cost for importers, and suppliers' banks add checks to payments from Nigeria.                                                                                                                                                                                 |
 
 **2. Cold outreach.** We built a 71-lead list (agent teams, B2B businesses, procurement experts) and contacted 48 of them on 4–5 November, with follow-ups on 11 and 13 November:
 
-| Segment | Contacted | Examples |
-|---|---|---|
-| AI agent and agent-payment teams | 30 | LangChain, CrewAI, Fetch.ai, Olas, Skyfire, Payman, Crossmint, Nevermined, Turnkey, Lit Protocol |
-| B2B businesses | 14 | TradeDepot and Vendease (B2B trade in Africa), 12 Web3 security and dev firms that buy and sell services |
-| Procurement and negotiation experts | 4 | Pactum, Zip, Keelvar, Fairmarkit |
+| Segment                             | Contacted | Examples                                                                                                 |
+| ----------------------------------- | --------- | -------------------------------------------------------------------------------------------------------- |
+| AI agent and agent-payment teams    | 30        | LangChain, CrewAI, Fetch.ai, Olas, Skyfire, Payman, Crossmint, Nevermined, Turnkey, Lit Protocol         |
+| B2B businesses                      | 14        | TradeDepot and Vendease (B2B trade in Africa), 12 Web3 security and dev firms that buy and sell services |
+| Procurement and negotiation experts | 4         | Pactum, Zip, Keelvar, Fairmarkit                                                                         |
 
 46 went by email and 3 by X DM (one lead got both). As of 13 November no one has replied, so nothing here rests on interviews yet.
 
@@ -106,6 +116,7 @@ One per business, holding its money. `open_deal` runs four checks in order: froz
 ### Escrow ([contracts/escrow/src/lib.rs](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/escrow/src/lib.rs#L92-L292))
 
 `escrow.bizzy-fy.testnet`. Deals move Proposed → Accepted → Delivered → Released, with up to 10 milestones. Timers run without a trusted party:
+
 - the buyer has one hour to review a delivery, after which anyone can call `release_due`;
 - an undelivered deal can be refunded by anyone after its deadline (`refund_expired`);
 - a dispute that isn't settled by an agreed split within an hour ends by a fixed rule (`refund_on_timeout`).
@@ -129,39 +140,39 @@ Our keeper calls these with a key limited to exactly those methods. Every payout
 
 NEAR testnet.
 
-| What | Account |
-|---|---|
-| Registry (company factory, directory, reputation) | [`bizzy-fy.testnet`](https://testnet.nearblocks.io/address/bizzy-fy.testnet) |
-| Escrow | [`escrow.bizzy-fy.testnet`](https://testnet.nearblocks.io/address/escrow.bizzy-fy.testnet) |
-| Policy code (global contract, by hash) | `Ah9j86UuAV6fqyP1yzPVKSw8SWDGgaDpkTwiuxbvfvx6` |
-| Score badge NFTs (NEP-171, on the registry) | [`bizzy-fy.testnet` collection](https://testnet.nearblocks.io/nft-token/bizzy-fy.testnet/cups.bizzy-fy.testnet), images pinned on IPFS: [New](https://gateway.pinata.cloud/ipfs/bafkreiap2kmu3zxsrk4t25jatdvfrcenbw7ntj5oqrx632nutryklwhnqy), [Bronze](https://gateway.pinata.cloud/ipfs/bafkreiglwopxqnqypzikkc5rmw5uxxe7abja7crn5onvs3tzkytwfrla64), [Silver](https://gateway.pinata.cloud/ipfs/bafkreiaidntxqzmph5fvqhbiwvlb3e62tzeenvyvxzk5xdfourtxducbum), [Gold](https://gateway.pinata.cloud/ipfs/bafkreicl6me6dpuiwgkucloac2bez6jxnzqihf74p43eyqynv3lhsuhzte) |
-| Attester and keeper (World ID facts, settling due deals) | [`bizzy-fy-attester.testnet`](https://testnet.nearblocks.io/address/bizzy-fy-attester.testnet) |
-| Demo businesses | [`cafe.bizzy-fy.testnet`](https://testnet.nearblocks.io/address/cafe.bizzy-fy.testnet), [`cups.bizzy-fy.testnet`](https://testnet.nearblocks.io/address/cups.bizzy-fy.testnet), [`hh.bizzy-fy.testnet`](https://testnet.nearblocks.io/address/hh.bizzy-fy.testnet) |
+| What                                                     | Account                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Registry (company factory, directory, reputation)        | [`bizzy-fy.testnet`](https://testnet.nearblocks.io/address/bizzy-fy.testnet)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Escrow                                                   | [`escrow.bizzy-fy.testnet`](https://testnet.nearblocks.io/address/escrow.bizzy-fy.testnet)                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Policy code (global contract, by hash)                   | `Ah9j86UuAV6fqyP1yzPVKSw8SWDGgaDpkTwiuxbvfvx6`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Score badge NFTs (NEP-171, on the registry)              | [`bizzy-fy.testnet` collection](https://testnet.nearblocks.io/nft-token/bizzy-fy.testnet/cups.bizzy-fy.testnet), images pinned on IPFS: [New](https://gateway.pinata.cloud/ipfs/bafkreiap2kmu3zxsrk4t25jatdvfrcenbw7ntj5oqrx632nutryklwhnqy), [Bronze](https://gateway.pinata.cloud/ipfs/bafkreiglwopxqnqypzikkc5rmw5uxxe7abja7crn5onvs3tzkytwfrla64), [Silver](https://gateway.pinata.cloud/ipfs/bafkreiaidntxqzmph5fvqhbiwvlb3e62tzeenvyvxzk5xdfourtxducbum), [Gold](https://gateway.pinata.cloud/ipfs/bafkreicl6me6dpuiwgkucloac2bez6jxnzqihf74p43eyqynv3lhsuhzte) |
+| Attester and keeper (World ID facts, settling due deals) | [`bizzy-fy-attester.testnet`](https://testnet.nearblocks.io/address/bizzy-fy-attester.testnet)                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Demo businesses                                          | [`cafe.bizzy-fy.testnet`](https://testnet.nearblocks.io/address/cafe.bizzy-fy.testnet), [`cups.bizzy-fy.testnet`](https://testnet.nearblocks.io/address/cups.bizzy-fy.testnet), [`hh.bizzy-fy.testnet`](https://testnet.nearblocks.io/address/hh.bizzy-fy.testnet)                                                                                                                                                                                                                                                                                                    |
 
 ## Proof it ran
 
 hh's first deal, end to end (deal 5):
 
-| Step | Transaction |
-|---|---|
-| hh signs up: account and policy created, no full-access key | [`FHTzsB…`](https://testnet.nearblocks.io/txns/FHTzsBZkNKxvEssPiHhqiD6dcTqNeHExX2FJTJTb2PnD) |
-| Guardian gives the agent its limited key | [`Bi87Ka…`](https://testnet.nearblocks.io/txns/Bi87KaMK7hr342QWFQ23PgEKfZCBm1ADbfgBgBQJH7DB) |
-| After 7 private moves, hh's agent locks 0.35 NEAR | [`BpiGHY…`](https://testnet.nearblocks.io/txns/BpiGHYAMrJfUXs2Q4x8jnNk5FvLEbUR9r6rMMqAZoqgh) |
-| cups's agent accepts the same fingerprint | [`BrdHCN…`](https://testnet.nearblocks.io/txns/BrdHCN1eYgt9a1YhHAhSfHSKbBa96FXFVKjANT5xc5Tw) |
-| cups marks it delivered | [`DTshU6…`](https://testnet.nearblocks.io/txns/DTshU6udfsvWTjXG5ttrPYsUTTqSEWgbj2zm9Y7GrHU4) |
-| hh's guardian confirms; cups is paid; scores updated | [`91ZichC…`](https://testnet.nearblocks.io/txns/91ZichCGAwS2PMU8C4DbbE1ppANVMoCfs1PivHa3rMj4) |
+| Step                                                        | Transaction                                                                                   |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| hh signs up: account and policy created, no full-access key | [`FHTzsB…`](https://testnet.nearblocks.io/txns/FHTzsBZkNKxvEssPiHhqiD6dcTqNeHExX2FJTJTb2PnD)  |
+| Guardian gives the agent its limited key                    | [`Bi87Ka…`](https://testnet.nearblocks.io/txns/Bi87KaMK7hr342QWFQ23PgEKfZCBm1ADbfgBgBQJH7DB)  |
+| After 7 private moves, hh's agent locks 0.35 NEAR           | [`BpiGHY…`](https://testnet.nearblocks.io/txns/BpiGHYAMrJfUXs2Q4x8jnNk5FvLEbUR9r6rMMqAZoqgh)  |
+| cups's agent accepts the same fingerprint                   | [`BrdHCN…`](https://testnet.nearblocks.io/txns/BrdHCN1eYgt9a1YhHAhSfHSKbBa96FXFVKjANT5xc5Tw)  |
+| cups marks it delivered                                     | [`DTshU6…`](https://testnet.nearblocks.io/txns/DTshU6udfsvWTjXG5ttrPYsUTTqSEWgbj2zm9Y7GrHU4)  |
+| hh's guardian confirms; cups is paid; scores updated        | [`91ZichC…`](https://testnet.nearblocks.io/txns/91ZichCGAwS2PMU8C4DbbE1ppANVMoCfs1PivHa3rMj4) |
 
 The other paths:
 
-| What it shows | Transaction |
-|---|---|
-| Over the weekly limit: deal parked, then the guardian approves | [`441Ath…`](https://testnet.nearblocks.io/txns/441AthiUrUK7EMhXxQK1S43T2XH1hxnPEUgLY8eztafY) → accepted [`DZ66x2…`](https://testnet.nearblocks.io/txns/DZ66x2WqEi1SQFPGmFNxcgUdQU2KQUbpz3K5is8mN6HB) |
-| Guardian approves cups by salted fingerprint | [`HcKzwD…`](https://testnet.nearblocks.io/txns/HcKzwD6uFPDmFrLZmvShaaYU7jXcj4xr9L6UA9uyC9Uj) |
-| On "only businesses I approve", the agent proves cups with the salt and locks 0.16 NEAR | [`5V8vFN…`](https://testnet.nearblocks.io/txns/5V8vFNNAbd9EUF9gTXfHgGqWihWfxLURjaJrRnXhXNPr) |
-| The keeper refunds a deal past its deadline | [`DRNLQG…`](https://testnet.nearblocks.io/txns/DRNLQGKnKFzoCau2RM3GeLvt1yaVkJxBuChsGiv7RZYd) |
-| A company is marked verified human after World ID | [`674UXL…`](https://testnet.nearblocks.io/txns/674UXLrSBFiLwEKD6kBjdn4Phhmamn247yjPuKmaQDVj) |
-| A test call to the MCP endpoint with cafe's connection key buys 50 cups: verified private, parked for approval | [`4RChg8…`](https://testnet.nearblocks.io/txns/4RChg87kNaJrKRGdBC5hsGWmGLxrSTXJj4tL6Qrocf7K) |
-| Trying to transfer cups's score badge fails: "Badges can't be moved" | [`7AiGJ3…`](https://testnet.nearblocks.io/txns/7AiGJ3mzYEtPpe3RC7D4tFVfGkt1xQKphj7G948n4fXa) |
+| What it shows                                                                                                  | Transaction                                                                                                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Over the weekly limit: deal parked, then the guardian approves                                                 | [`441Ath…`](https://testnet.nearblocks.io/txns/441AthiUrUK7EMhXxQK1S43T2XH1hxnPEUgLY8eztafY) → accepted [`DZ66x2…`](https://testnet.nearblocks.io/txns/DZ66x2WqEi1SQFPGmFNxcgUdQU2KQUbpz3K5is8mN6HB) |
+| Guardian approves cups by salted fingerprint                                                                   | [`HcKzwD…`](https://testnet.nearblocks.io/txns/HcKzwD6uFPDmFrLZmvShaaYU7jXcj4xr9L6UA9uyC9Uj)                                                                                                         |
+| On "only businesses I approve", the agent proves cups with the salt and locks 0.16 NEAR                        | [`5V8vFN…`](https://testnet.nearblocks.io/txns/5V8vFNNAbd9EUF9gTXfHgGqWihWfxLURjaJrRnXhXNPr)                                                                                                         |
+| The keeper refunds a deal past its deadline                                                                    | [`DRNLQG…`](https://testnet.nearblocks.io/txns/DRNLQGKnKFzoCau2RM3GeLvt1yaVkJxBuChsGiv7RZYd)                                                                                                         |
+| A company is marked verified human after World ID                                                              | [`674UXL…`](https://testnet.nearblocks.io/txns/674UXLrSBFiLwEKD6kBjdn4Phhmamn247yjPuKmaQDVj)                                                                                                         |
+| A test call to the MCP endpoint with cafe's connection key buys 50 cups: verified private, parked for approval | [`4RChg8…`](https://testnet.nearblocks.io/txns/4RChg87kNaJrKRGdBC5hsGWmGLxrSTXJj4tL6Qrocf7K)                                                                                                         |
+| Trying to transfer cups's score badge fails: "Badges can't be moved"                                           | [`7AiGJ3…`](https://testnet.nearblocks.io/txns/7AiGJ3mzYEtPpe3RC7D4tFVfGkt1xQKphj7G948n4fXa)                                                                                                         |
 
 ## Try it
 
@@ -201,6 +212,7 @@ Contracts: `cd contracts && make test` (all tests and clippy), `make build`. `ma
 - **10 server tests** (`npm test`): offer parsing, the buyer's price cap, the TDX quote binding, NEP-413 login signatures, World ID nullifiers, sessions, encryption, who can read terms, settle timing, and contact-link safety.
 
 What must never break, and is tested:
+
 - An agent can never open a deal above its per-deal or weekly cap without the guardian's approval.
 - A frozen agent has no key on chain, so it cannot act at all.
 - The escrow pays out at most what was locked for each deal, and only once.
@@ -211,6 +223,7 @@ What must never break, and is tested:
 ## Security review
 
 The three contracts were reviewed against the `near-contract-audit` checklist ([report](docs/checkpoints/checkpoint-18-audit.md)):
+
 - **No high-severity issues.** All callbacks are `#[private]`, state changes before money moves, and guardian methods need 1 yoctoNEAR.
 - **Two fixes made in code:**
   - the agent can no longer confirm its own purchases, so a stolen key can't pay out at once;
@@ -229,13 +242,13 @@ The three contracts were reviewed against the `near-contract-audit` checklist ([
 
 ## Track alignment
 
-| Track | Where |
-|---|---|
-| **Agent Economy**: "agents that earn, spend, negotiate" | Two agents negotiate and settle a purchase: [`negotiate()`](frontend/lib/server/negotiate.ts), [escrow](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/escrow/src/lib.rs#L92-L292), MCP for outside agents ([`app/api/mcp`](frontend/app/api/mcp/route.ts)) |
-| **Privacy & Private AI**: "private AI, TEE, NEAR AI Cloud" | Negotiation in NEAR AI Cloud's TEE with in-app attestation checks ([`ai.ts` L43-L96](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/frontend/lib/server/ai.ts#L43-L96)); encrypted terms with on-chain fingerprints; salted partner list |
-| **AI Security & Defense**: "spending limits, policy engines, sandboxed wallets, reputation… function call keys, TEE attestation" | [Policy contract](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/policy/src/lib.rs#L131-L283): caps, approvals, freeze, function-call key with gas allowance, no full-access key; reputation only the escrow writes |
-| **NFTs That Do Something**: "carry credentials… dynamic NFTs, NEP-171" | Each business's score is a soulbound NEP-171 badge that carries its credential (score, deals, disputes), built live from on-chain reputation ([`badge`](https://github.com/Kelechikizito/bizzy-fy/blob/69d4897c7f491f9be306902ecbaaad07c37b7e95/contracts/registry/src/lib.rs#L469-L496)). Its IPFS image changes level as the score grows. Transfers always fail ([L416-L438](https://github.com/Kelechikizito/bizzy-fy/blob/69d4897c7f491f9be306902ecbaaad07c37b7e95/contracts/registry/src/lib.rs#L416-L438)) |
-| **Autonomous Business**: "procurement… humans only set the constraints" | The owner sets limits and approves exceptions; the agent buys, the escrow settles, the keeper ends timeouts |
+| Track                                                                                                                            | Where                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Agent Economy**: "agents that earn, spend, negotiate"                                                                          | Two agents negotiate and settle a purchase: [`negotiate()`](frontend/lib/server/negotiate.ts), [escrow](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/escrow/src/lib.rs#L92-L292), MCP for outside agents ([`app/api/mcp`](frontend/app/api/mcp/route.ts))                                                                                                                                                                                                   |
+| **Privacy & Private AI**: "private AI, TEE, NEAR AI Cloud"                                                                       | Negotiation in NEAR AI Cloud's TEE with in-app attestation checks ([`ai.ts` L43-L96](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/frontend/lib/server/ai.ts#L43-L96)); encrypted terms with on-chain fingerprints; salted partner list                                                                                                                                                                                                                                |
+| **AI Security & Defense**: "spending limits, policy engines, sandboxed wallets, reputation… function call keys, TEE attestation" | [Policy contract](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/policy/src/lib.rs#L131-L283): caps, approvals, freeze, function-call key with gas allowance, no full-access key; reputation only the escrow writes                                                                                                                                                                                                                                           |
+| **NFTs That Do Something**: "carry credentials… dynamic NFTs, NEP-171"                                                           | Each business's score is a soulbound NEP-171 badge that carries its credential (score, deals, disputes), built live from on-chain reputation ([`badge`](https://github.com/Kelechikizito/bizzy-fy/blob/69d4897c7f491f9be306902ecbaaad07c37b7e95/contracts/registry/src/lib.rs#L469-L496)). Its IPFS image changes level as the score grows. Transfers always fail ([L416-L438](https://github.com/Kelechikizito/bizzy-fy/blob/69d4897c7f491f9be306902ecbaaad07c37b7e95/contracts/registry/src/lib.rs#L416-L438)) |
+| **Autonomous Business**: "procurement… humans only set the constraints"                                                          | The owner sets limits and approves exceptions; the agent buys, the escrow settles, the keeper ends timeouts                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ## Roadmap
 
@@ -275,15 +288,15 @@ Everything. Bizzy-Fy has no earlier version and no baseline: it was started for 
 
 ## Tech stack
 
-| Layer | What |
-|---|---|
-| Contracts | Rust, `near-sdk` 5.29, `near-contract-standards` 5.29 (NEP-171 types and events), Global Contracts, `cargo-near` |
-| Tests | `cargo test`, `proptest`, `near-sandbox` with `near-api`; Node's test runner for the server |
-| Private AI | NEAR AI Cloud (private model in a TEE), NVIDIA NRAS (GPU attestation), `viem` (reply signature recovery) |
+| Layer                | What                                                                                                                  |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Contracts            | Rust, `near-sdk` 5.29, `near-contract-standards` 5.29 (NEP-171 types and events), Global Contracts, `cargo-near`      |
+| Tests                | `cargo test`, `proptest`, `near-sandbox` with `near-api`; Node's test runner for the server                           |
+| Private AI           | NEAR AI Cloud (private model in a TEE), NVIDIA NRAS (GPU attestation), `viem` (reply signature recovery)              |
 | Identity and sign-in | NEAR Auth (`@fast-auth-near/*`), NEAR Connect (`@hot-labs/near-connect`), World ID (`@worldcoin/idkit` 4.6.0), `jose` |
-| Frontend and server | Next.js 16, React 19, Tailwind 4, Motion, `near-api-js` 5, `near-kit`, `@libsql/client`, `qrcode` |
-| Agents from outside | MCP (`@modelcontextprotocol/server`, `mcp-handler`) |
-| Data and hosting | NEAR RPC (FastNEAR), Pinata IPFS for the badge images, Vercel |
+| Frontend and server  | Next.js 16, React 19, Tailwind 4, Motion, `near-api-js` 5, `near-kit`, `@libsql/client`, `qrcode`                     |
+| Agents from outside  | MCP (`@modelcontextprotocol/server`, `mcp-handler`)                                                                   |
+| Data and hosting     | NEAR RPC (FastNEAR), Pinata IPFS for the badge images, Vercel                                                         |
 
 Libraries are used as published. Code was written by Kelechikizito with Claude Code (Anthropic) as a coding assistant.
 
