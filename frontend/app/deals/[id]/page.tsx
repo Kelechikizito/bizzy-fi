@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
-import { Badge } from "@/components/agent";
+import { Badge, Chat } from "@/components/agent";
 import { Button, Frame, Problem, Receipt } from "@/components/ui";
 import { DISPUTE_WINDOW_MS, REVIEW_WINDOW_MS } from "@/lib/near/contracts";
 import { toNear, toYocto } from "@/lib/near/read";
@@ -241,15 +241,9 @@ function DealPage() {
           <div>
             <h2 className="font-display text-xl font-bold">How the agents got there</h2>
             <p className="mt-1 text-sm text-muted">Asked: &quot;{negotiation.request}&quot;</p>
-            <ol className="mt-3 space-y-1 text-sm">
-              {negotiation.turns.map((turn, i) => (
-                <li key={i}>
-                  <span className="font-medium">{turn.side === side ? "Your agent" : `${other}'s agent`}:</span>{" "}
-                  {turn.offer.action === "accept" ? "Accepted." : turn.offer.action === "walk_away" ? "Walked away." : `${turn.offer.price_near} NEAR.`}{" "}
-                  <span className="text-muted">{turn.offer.note}</span>
-                </li>
-              ))}
-            </ol>
+            <div className="text-sm">
+              <Chat turns={negotiation.turns} mine={buying ? "buyer" : "seller"} other={other} />
+            </div>
           </div>
         )}
       </section>

@@ -82,8 +82,8 @@ export function AskAgent({ company, cap, version, onDone }: { company: string; c
       <Problem text={error} />
       {list.length > 0 && (
         <ul className="mt-6 space-y-3">
-          {list.map((n) => (
-            <Summary key={n.id} n={n} company={company} />
+          {list.map((n, i) => (
+            <Summary key={n.id} n={n} company={company} open={i === 0} />
           ))}
         </ul>
       )}
@@ -92,16 +92,20 @@ export function AskAgent({ company, cap, version, onDone }: { company: string; c
 }
 
 /** One negotiation: outcome, the privacy proof, the back-and-forth, receipts. */
-function Summary({ n, company }: { n: Negotiation; company: string }) {
+function Summary({ n, company, open }: { n: Negotiation; company: string; open: boolean }) {
   const buying = n.buyer === company;
   const other = short(buying ? n.seller : n.buyer);
   const t = n.terms;
+  // The agents can agree and the deal still not open (too small, no money): say both, not just "no deal".
+  const agreedOnly = n.turns.at(-1)?.offer.action === "accept" && (n.status === "no_deal" || n.status === "failed");
   const headline =
     t && n.status === "opened"
       ? `${buying ? "Bought" : "Sold"} ${t.quantity} × ${t.item} ${buying ? "from" : "to"} ${other} for ${t.price_near} NEAR`
       : t && n.status === "waiting"
         ? `${t.quantity} × ${t.item} from ${other} for ${t.price_near} NEAR is over your limit. OK it above.`
-        : `No deal with ${other}`;
+        : agreedOnly
+          ? `Agreed with ${other}, but no money was locked`
+          : `No deal with ${other}`;
   return (
     <li className={`rounded-sm border px-4 py-3 ${n.status === "waiting" ? "border-ink bg-wash" : "border-rule bg-card"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -115,21 +119,9 @@ function Summary({ n, company }: { n: Negotiation; company: string }) {
         </div>
         <Badge proof={n.proof} />
       </div>
-      <details className="mt-2 text-sm">
+      <details className="mt-2 text-sm" open={open}>
         <summary className="cursor-pointer text-muted underline-offset-4 hover:underline">Read the negotiation ({n.turns.length} moves)</summary>
-        <ol className="mt-2 space-y-1">
-          {n.turns.map((turn, i) => (
-            <li key={i}>
-              <span className="font-medium">{turn.side === (buying ? "buyer" : "seller") ? "Your agent" : `${other}'s agent`}:</span>{" "}
-              {turn.offer.action === "accept"
-                ? "Accepted."
-                : turn.offer.action === "walk_away"
-                  ? "Walked away."
-                  : `${turn.offer.quantity} × ${turn.offer.item}, ${turn.offer.price_near} NEAR, ${turn.offer.delivery_days} days.`}{" "}
-              <span className="text-muted">{turn.offer.note}</span>
-            </li>
-          ))}
-        </ol>
+        <Chat turns={n.turns} mine={buying ? "buyer" : "seller"} other={other} />
       </details>
       {(n.receipts.opened || n.receipts.accepted) && (
         <p className="mt-2 flex gap-4">
@@ -141,6 +133,35 @@ function Summary({ n, company }: { n: Negotiation; company: string }) {
         </p>
       )}
     </li>
+  );
+}
+
+/** The negotiation as a chat: your agent on the right, theirs on the left, each move's terms under its message. */
+export function Chat({ turns, mine, other }: { turns: Negotiation["turns"]; mine: "buyer" | "seller"; other: string }) {
+  return (
+    // Long talks scroll inside the box; tabIndex lets keyboard users scroll it too.
+    <ol tabIndex={0} className="mt-3 max-h-[28rem] space-y-3 overflow-y-auto overscroll-contain rounded-sm bg-surface p-3 outline-none focus-visible:ring-2 focus-visible:ring-ink" aria-label="The negotiation">
+      {turns.map(({ side, offer }, i) => {
+        const me = side === mine;
+        const terms =
+          offer.action === "accept"
+            ? `Accepted ${turns[i - 1]?.offer.price_near ?? ""} NEAR`
+            : offer.action === "walk_away"
+              ? "Walked away"
+              : `${offer.quantity} × ${offer.item} · ${offer.price_near} NEAR · ${offer.delivery_days} ${offer.delivery_days === 1 ? "day" : "days"}`;
+        return (
+          <li key={i} className={`flex flex-col ${me ? "items-end" : "items-start"}`}>
+            <span className="mb-1 px-1 text-xs text-muted">{me ? "Your agent" : `${other}'s agent`}</span>
+            <div
+              className={`max-w-[85%] rounded-2xl px-4 py-2 ${me ? "rounded-br-sm bg-ink text-white" : "rounded-bl-sm border border-rule bg-card"} ${offer.action === "accept" ? "ring-2 ring-chart" : ""}`}
+            >
+              {offer.note && <p className="leading-snug">{offer.note}</p>}
+              <p className={`text-xs font-medium ${offer.note ? "mt-1" : ""} ${me ? "text-ash" : "text-muted"}`}>{terms}</p>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
