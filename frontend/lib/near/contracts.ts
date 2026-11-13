@@ -5,6 +5,8 @@ export const NETWORK = "testnet";
 export const HUMAN_REQUIRED = (NETWORK as string) === "mainnet";
 export const RPC_URL = "https://rpc.testnet.fastnear.com";
 export const EXPLORER_URL = "https://testnet.nearblocks.io";
+/** Where badge images load from (the registry's NFT `base_uri`). */
+export const IPFS_GATEWAY = "https://gateway.pinata.cloud/ipfs";
 
 export const REGISTRY_ID = "bizzy-fy.testnet";
 export const ESCROW_ID = "escrow.bizzy-fy.testnet";
