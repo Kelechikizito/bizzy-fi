@@ -1,6 +1,6 @@
 "use client";
 // "Prove you're human" with World ID Selfie Check (phone camera, no Orb); the server checks the proof and writes it to the registry.
-import { IDKitRequestWidget, type RpContext, selfieCheck } from "@worldcoin/idkit";
+import { IDKitRequestWidget, type RpContext, selfieCheckLegacy } from "@worldcoin/idkit";
 import { useState } from "react";
 import { api } from "@/lib/wallet";
 
@@ -40,8 +40,9 @@ export function WorldIdButton({ company, onDone, className = PILL }: { company: 
       {request && (
         <IDKitRequestWidget
           {...request}
-          allow_legacy_proofs={false}
-          preset={selfieCheck()}
+          // Selfie Check in the World App today is a World ID 3.0 credential, which IDKit calls "legacy".
+          allow_legacy_proofs
+          preset={selfieCheckLegacy()}
           open
           onOpenChange={(open) => !open && setRequest(null)}
           handleVerify={async (result) => void (await api(`/api/companies/${company}/world-id`, result))}
