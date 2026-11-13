@@ -5,14 +5,14 @@ import { companyId } from "../lib/near/contracts.ts";
 import { seal } from "../lib/server/crypto.ts";
 import { db } from "../lib/server/db.ts";
 import { reader } from "../lib/server/near.ts";
-import { setBrief } from "../lib/server/negotiate.ts";
+import { clean, setListing } from "../lib/server/listing.ts";
 
-const BRIEFS: Record<string, string> = {
-  cafe: "We sell coffee beans to other cafes: 0.01 NEAR per 100 g, never below 0.008 per 100 g. Delivery in 2 days.",
-  cups: "Compostable 12 oz cups with lids. List price 0.004 NEAR a cup; lowest 0.003 a cup for orders of 300 or more, 0.0035 below that. Minimum order 20. Delivery in 3 to 7 days; faster costs 10% more.",
+const BRIEFS = {
+  cafe: clean({ overview: "A roastery selling to other cafes.", services: "Coffee beans, sold per 100 g", prices: "0.01 NEAR per 100 g", lowest_unit_price: 0.008, quantity: "Up to 500 kg a week", terms: "Delivery in 2 days" }),
+  cups: clean({ overview: "Packaging for cafes.", services: "Compostable 12 oz cups with lids", prices: "0.004 NEAR a cup; 0.003 a cup for 300 or more", lowest_unit_price: 0.003, quantity: "Minimum order 20; up to 10,000", terms: "Delivery in 3 to 7 days; faster costs 10% more" }),
 };
 
-for (const name of Object.keys(BRIEFS)) {
+for (const name of Object.keys(BRIEFS) as (keyof typeof BRIEFS)[]) {
   const company = companyId(name);
   const secret = process.env[`${name.toUpperCase()}_AGENT_KEY`];
   if (!secret) throw new Error(`Missing ${name.toUpperCase()}_AGENT_KEY`);
@@ -23,6 +23,6 @@ for (const name of Object.keys(BRIEFS)) {
     sql: "INSERT OR REPLACE INTO agent_keys (company, public_key, sealed) VALUES (?, ?, ?)",
     args: [company, publicKey, seal(`agent:${company}`, secret)],
   });
-  await setBrief(company, BRIEFS[name]);
-  console.log(`${company}: agent key and brief saved`);
+  await setListing(company, BRIEFS[name]);
+  console.log(`${company}: agent key and listing saved`);
 }

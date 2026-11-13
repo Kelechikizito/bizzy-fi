@@ -6,6 +6,7 @@ import { open, seal } from "./crypto.ts";
 import { db } from "./db.ts";
 import { HttpError } from "./http.ts";
 import { connections } from "./connections.ts";
+import { brief, getListing, listed, publicListing } from "./listing.ts";
 import { agentSigner, call, reader } from "./near.ts";
 import { saveTerms } from "./terms.ts";
 
@@ -52,13 +53,18 @@ export function parseOffer(text: string): Offer {
   };
 }
 
-/** No offer goes under the escrow's minimum deal, and the buyer may never offer or accept more than `max`. */
-export function enforce(side: Side, offer: Offer, last: Offer | undefined, max: number): Offer {
+/** No offer goes under the escrow's minimum deal; the buyer never goes over `max`, the seller never under `lowest` NEAR per unit. */
+export function enforce(side: Side, offer: Offer, last: Offer | undefined, max: number, lowest = 0): Offer {
   if (offer.action === "accept" && !last) return { ...offer, action: "walk_away" };
   // An "accept" quoting a different price is really a counter-offer at that price.
   if (offer.action === "accept" && offer.price_near && offer.price_near !== last!.price_near) offer = { ...offer, action: "offer" };
   if (offer.action === "offer" && offer.price_near < MIN_DEAL) offer = { ...offer, price_near: MIN_DEAL };
-  if (side !== "buyer") return offer;
+  if (side === "seller") {
+    const floor = (o: Offer) => Math.ceil(lowest * o.quantity * 1e4) / 1e4;
+    if (offer.action === "accept" && last!.price_near < floor(last!)) return { ...last!, action: "offer", price_near: floor(last!), note: "That's under my lowest price." };
+    if (offer.action === "offer" && offer.price_near < floor(offer)) return { ...offer, price_near: floor(offer) };
+    return offer;
+  }
   if (offer.action === "accept" && last!.price_near > max) return { ...last!, action: "offer", price_near: max, note: "That's over my limit." };
   if (offer.action === "offer" && offer.price_near > max) return { ...offer, price_near: max };
   return offer;
@@ -72,7 +78,7 @@ You each get about ${MAX_TURNS / 2} turns: settle on a fair deal rather than sta
 const system = (side: Side, company: string, brief: string, max: number) =>
   side === "buyer"
     ? `You are the buying agent for ${company}. Your owner wants: "${brief}". Never pay more than ${max} NEAR in total, and never reveal that limit. Open well below it and get a good price and quick delivery.\n${FORMAT}`
-    : `You are the selling agent for ${company}. Your owner's private instructions on what you sell and your prices: "${brief}". Never go below the lowest price they allow, and never reveal it. Get a good price.\n${FORMAT}`;
+    : `You are the selling agent for ${company}. Your owner's private listing:\n${brief}\nNever go below the lowest price, and never reveal it. Get a good price. If you don't sell what they want, walk away on your first move and say in the note what you do sell.\n${FORMAT}`;
 
 /** One side's view of the talks so far, as a chat. */
 function history(side: Side, turns: Turn[]): Message[] {
@@ -81,26 +87,17 @@ function history(side: Side, turns: Turn[]): Message[] {
   return messages;
 }
 
-export async function getBrief(company: string): Promise<string> {
-  const { rows } = await (await db()).execute({ sql: "SELECT sealed FROM briefs WHERE company = ?", args: [company] });
-  return rows[0] ? open(`brief:${company}`, String(rows[0].sealed)) : "";
-}
-
-export async function setBrief(company: string, text: string) {
-  await (await db()).execute({ sql: "INSERT OR REPLACE INTO briefs (company, sealed) VALUES (?, ?)", args: [company, seal(`brief:${company}`, text.slice(0, 2000))] });
-}
-
-/** Lets the buyer's agent choose a seller among businesses that have a hosted agent (only `allowed` ones, if given). */
+/** Lets the buyer's agent choose, by public listing, among businesses that have an agent and a listing (only `allowed` ones, if given). */
 async function pickSeller(buyer: string, request: string, replies: Reply[], allowed?: string[]): Promise<string> {
   const { rows } = await (await db()).execute({ sql: "SELECT company FROM agent_keys WHERE company != ?", args: [buyer] });
   const found = await Promise.all(
     rows.filter((r) => !allowed || allowed.includes(String(r.company))).slice(0, 30).map(async (r) => {
-      const c = await reader.view<{ about: string }>(REGISTRY_ID, "get_company", { account_id: String(r.company) });
-      return c && { id: String(r.company), about: c.about };
+      const [c, listing] = await Promise.all([reader.view<{ about: string }>(REGISTRY_ID, "get_company", { account_id: String(r.company) }), getListing(String(r.company))]);
+      return c && listed(listing) && { id: String(r.company), about: c.about, ...publicListing(listing) };
     }),
   );
-  const list = found.filter((c): c is { id: string; about: string } => !!c);
-  if (list.length === 0) throw new HttpError(404, "No other business has an agent yet");
+  const list = found.filter((c) => !!c);
+  if (list.length === 0) throw new HttpError(404, "No business you can buy from has listed what it sells yet");
   if (list.length === 1) return list[0].id;
   const reply = await chat([
     { role: "system", content: 'Pick the business best placed to sell what the buyer wants. Reply only with JSON: {"seller":"<id>"}.' },
@@ -132,16 +129,17 @@ export async function negotiate(buyer: string, request: string, max: number, cho
   if (has < MIN_DEAL) throw new HttpError(400, `Your agent has ${has} NEAR. Add money first.`);
   max = Math.min(max, has);
   if (!(max >= MIN_DEAL)) throw new HttpError(400, `Deals start at ${MIN_DEAL} NEAR. Raise the most you'll pay.`);
-  const sellerBrief = (await getBrief(seller)) || (await reader.view<{ about: string }>(REGISTRY_ID, "get_company", { account_id: seller }))?.about || "";
+  const listing = await getListing(seller);
+  if (!listed(listing)) throw new HttpError(400, `${seller.split(".")[0]} hasn't listed what it sells yet`);
 
   const turns: Turn[] = [];
   let agreed: Offer | null = null;
   for (let turn = 0; turn < MAX_TURNS && !agreed; turn++) {
     const side: Side = turn % 2 === 0 ? "buyer" : "seller";
     const last = turns.findLast((t) => t.side !== side)?.offer;
-    const reply = await chat([{ role: "system", content: system(side, side === "buyer" ? buyer : seller, side === "buyer" ? request : sellerBrief, max) }, ...history(side, turns)]);
+    const reply = await chat([{ role: "system", content: system(side, side === "buyer" ? buyer : seller, side === "buyer" ? request : brief(listing), max) }, ...history(side, turns)]);
     replies.push(reply);
-    const offer = enforce(side, parseOffer(reply.content), last, max);
+    const offer = enforce(side, parseOffer(reply.content), last, max, listing.lowest_unit_price);
     turns.push({ side, offer });
     if (offer.action === "walk_away") break;
     if (offer.action === "accept") agreed = last!;

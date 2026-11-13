@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ESCROW_ID, REGISTRY_ID, txUrl } from "@/lib/near/contracts";
 import { myDeals, toNear } from "@/lib/near/read";
 import { db } from "@/lib/server/db";
+import { getListing, publicListing } from "@/lib/server/listing";
 import { companyForKey } from "@/lib/server/mcp-keys";
 import { agentSigner, call, reader } from "@/lib/server/near";
 import { negotiate } from "@/lib/server/negotiate";
@@ -31,11 +32,12 @@ const handler = createMcpHandler(
         const list = await Promise.all(
           rows.map(async (r) => {
             const id = String(r.company);
-            const [c, score] = await Promise.all([
+            const [c, score, listing] = await Promise.all([
               reader.view<{ about: string; human: boolean }>(REGISTRY_ID, "get_company", { account_id: id }),
               reader.view<number>(REGISTRY_ID, "get_score", { account_id: id }),
+              getListing(id).then(publicListing),
             ]);
-            return { name: short(id), about: c?.about, score, verified_human: c?.human, profile: `${SITE}/b/${short(id)}` };
+            return { name: short(id), about: listing.overview || c?.about, sells: listing.services, website: listing.website, score, verified_human: c?.human, profile: `${SITE}/b/${short(id)}` };
           }),
         );
         return reply(list);

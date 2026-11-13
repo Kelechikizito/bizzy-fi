@@ -10,6 +10,7 @@ import { accountUrl, badgeUrl } from "@/lib/near/contracts";
 import { loadProfile } from "@/lib/near/profile";
 import { getAvatar } from "@/lib/server/avatar";
 import { contactLinks, getContacts } from "@/lib/server/contacts";
+import { getListing, publicListing } from "@/lib/server/listing";
 
 export async function generateMetadata({
   params,
@@ -38,9 +39,10 @@ async function Profile({
 }) {
   const p = await loadProfile((await params).name);
   if (!p) notFound();
-  const [contacts, avatar] = await Promise.all([
+  const [contacts, avatar, listing] = await Promise.all([
     getContacts(p.id).then(contactLinks),
     getAvatar(p.id),
+    getListing(p.id).then(publicListing),
   ]);
   const quests = [
     { done: p.human, text: "Verified human", how: "World ID" },
@@ -88,7 +90,22 @@ async function Profile({
           )}
           <div>
             <h1 className="font-display text-5xl font-bold">{p.name}</h1>
-            <p className="mt-2 max-w-prose text-lg text-muted">{p.about}</p>
+            <p className="mt-2 max-w-prose text-lg text-muted">
+              {listing.overview || p.about}
+            </p>
+            {listing.services && (
+              <p className="mt-1 max-w-prose">Sells: {listing.services}</p>
+            )}
+            {listing.website && (
+              <a
+                href={listing.website}
+                target="_blank"
+                rel="noreferrer nofollow"
+                className="mt-1 inline-block text-sm underline underline-offset-4"
+              >
+                {listing.website.replace(/^https?:\/\//, "")}
+              </a>
+            )}
           </div>
         </div>
         {p.human && (

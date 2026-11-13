@@ -191,25 +191,63 @@ export function Badge({ proof }: { proof: Negotiation["proof"] }) {
 }
 
 /** The private notes the agent sells by: what, prices, lowest prices. Only this business's agent reads them. */
+type Listing = { overview: string; services: string; website: string; prices: string; lowest_unit_price: number; quantity: string; terms: string };
+
+const FIELDS: { key: keyof Listing; label: string; hint: string; private?: true }[] = [
+  { key: "overview", label: "Overview", hint: "A family roastery supplying cafes in Lagos." },
+  { key: "services", label: "What you sell", hint: "Coffee beans, roasted to order, sold per kg." },
+  { key: "website", label: "Website or portfolio", hint: "https://…" },
+  { key: "prices", label: "Price points", hint: "0.1 NEAR per kg; 0.08 per kg for 50 kg or more.", private: true },
+  { key: "lowest_unit_price", label: "Lowest price per unit (NEAR)", hint: "0.07", private: true },
+  { key: "quantity", label: "How many you can supply", hint: "Up to 200 kg a week; minimum order 5 kg.", private: true },
+  { key: "terms", label: "Terms", hint: "Delivery in 3 days; faster costs 10% more.", private: true },
+];
+
+/** The listing the agent sells by: public parts help buyers find you; private parts only your agent sees. */
 export function AgentBrief({ company }: { company: string }) {
-  const [text, setText] = useState<string | null>(null);
+  const [listing, setListing] = useState<Listing | null>(null);
+  const [sentence, setSentence] = useState("");
+  const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
-  useEffect(() => void api<{ text: string }>(`/api/companies/${company}/brief`).then((r) => setText(r.text)), [company]);
-  if (text === null) return null;
+  const url = `/api/companies/${company}/brief`;
+  useEffect(() => void api<{ listing: Listing }>(url).then((r) => setListing(r.listing)), [url]);
+  if (!listing) return null;
+  const run = (body: object) => (setBusy(true), api<{ listing: Listing }>(url, body).then((r) => setListing(r.listing)).finally(() => setBusy(false)));
+  const field = (f: (typeof FIELDS)[number]) => (
+    <label key={f.key} className="mt-3 block">
+      <span className="text-sm font-medium">{f.label}</span>
+      <input
+        type={f.key === "lowest_unit_price" ? "number" : "text"}
+        min={0}
+        step="any"
+        value={listing[f.key] || ""}
+        onChange={(e) => (setListing({ ...listing, [f.key]: f.key === "lowest_unit_price" ? Number(e.target.value) : e.target.value }), setSaved(false))}
+        placeholder={f.hint}
+        className="mt-1 w-full rounded-lg border border-rule bg-card px-4 py-2 outline-none focus:border-ink"
+      />
+    </label>
+  );
   return (
     <div className="mt-6">
-      <label className="block">
-        <span className="font-medium">What your agent sells (private)</span>
-        <span className="block text-sm text-muted">Products, prices and your lowest prices. Other businesses never see this.</span>
-        <textarea
-          value={text}
-          onChange={(e) => (setText(e.target.value), setSaved(false))}
-          rows={3}
-          placeholder="Compostable cups, 0.004 NEAR each; lowest 0.003 for 300 or more."
-          className="mt-2 w-full rounded-lg border border-rule bg-card px-4 py-3 outline-none focus:border-ink"
+      <span className="font-medium">What your agent sells</span>
+      <span className="block text-sm text-muted">Without this, buyers&apos; agents can&apos;t trade with you.</span>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <input
+          value={sentence}
+          onChange={(e) => setSentence(e.target.value)}
+          placeholder="In one sentence: I sell tequila, about 0.03 NEAR a bottle, 3-day delivery"
+          className="min-w-0 flex-1 rounded-lg border border-rule bg-card px-4 py-2 outline-none focus:border-ink"
         />
-      </label>
-      <Button variant="plain" className="mt-2" onClick={() => void api(`/api/companies/${company}/brief`, { text }).then(() => setSaved(true))}>
+        <Button variant="plain" disabled={busy || !sentence.trim()} onClick={() => void run({ draft: sentence }).then(() => setSaved(false))}>
+          {busy ? "Writing…" : "Write my listing"}
+        </Button>
+      </div>
+      <p className="mt-5 text-sm font-medium uppercase text-muted">Public: helps buyers&apos; agents find you</p>
+      {FIELDS.filter((f) => !f.private).map(field)}
+      <p className="mt-5 text-sm font-medium uppercase text-muted">Private: only your agent sees this</p>
+      {FIELDS.filter((f) => f.private).map(field)}
+      <span className="mt-1 block text-sm text-muted">Your agent can never sell below your lowest price. Our code blocks it.</span>
+      <Button variant="plain" className="mt-3" disabled={busy} onClick={() => void run({ listing }).then(() => setSaved(true))}>
         {saved ? "Saved" : "Save"}
       </Button>
     </div>

@@ -97,6 +97,28 @@ test("the buyer's agent can never go over its limit", async () => {
   assert.equal(enforce("seller", offer(0.45, "accept"), offer(0.45), 2).action, "accept");
 });
 
+test("the seller's agent can never go under its lowest price per unit", async () => {
+  const { enforce, parseOffer } = await import("./negotiate.ts");
+  const offer = (price: number, quantity: number, action = "offer") => parseOffer(JSON.stringify({ action, price_near: price, quantity }));
+  assert.equal(enforce("seller", offer(0.5, 50), undefined, 2, 0.02).price_near, 1);
+  const countered = enforce("seller", offer(0, 50, "accept"), offer(0.8, 50), 2, 0.02);
+  assert.equal(countered.action, "offer");
+  assert.equal(countered.price_near, 1);
+  assert.equal(enforce("seller", offer(0, 50, "accept"), offer(1.2, 50), 2, 0.02).action, "accept");
+  assert.equal(enforce("buyer", offer(0.5, 50), undefined, 2, 0.02).price_near, 0.5);
+});
+
+test("listings keep only clean fields and safe links", async () => {
+  const { clean, listed } = await import("./listing.ts");
+  const l = clean({ services: " tequila ", website: "javascript:alert(1)", lowest_unit_price: "-3", extra: "x" });
+  assert.equal(l.services, "tequila");
+  assert.equal(l.website, "");
+  assert.equal(l.lowest_unit_price, 0);
+  assert.equal("extra" in l, false);
+  assert.equal(listed(clean({})), false);
+  assert.equal(listed(l), true);
+});
+
 test("the CPU quote must carry the signing key and our nonce", async () => {
   const { quoteBinds } = await import("./ai.ts");
   const address = `0x${"ab".repeat(20)}`;
