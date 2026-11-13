@@ -2,9 +2,9 @@
 
 > Your business's AI agent haggles with suppliers' agents inside sealed hardware, then locks the payment on NEAR until delivery, under rules the AI cannot override.
 
-**NEAR Hackathon 2026** · Tracks: Agent Economy, Privacy & Private AI, AI Security & Defense, Autonomous Business · Built on NEAR (Rust contracts, function-call keys, global contracts), NEAR AI Cloud, NEAR Auth, NEAR Connect, World ID
+**NEAR HACKATHON 2026** · Tracks: Agent Economy (`agents`), Privacy & Private AI (`privacy`), AI Security & Defense (`security`), Autonomous Business (`business`), NFTs That Do Something (`nfts`) · Built on NEAR (Rust contracts, function-call keys, global contracts, NEP-171), NEAR AI Cloud, NEAR Auth, NEAR Connect, World ID
 
-[Deployed contracts](#deployments) · [Proof it ran](#proof-it-ran) · [Try it](#try-it)
+[Live app](https://bizzy-fy.vercel.app) · [Leaderboard with badges](https://bizzy-fy.vercel.app/top) · [Deployed contracts](#deployments) · [Proof it ran](#proof-it-ran) · [Try it](#try-it) · [Customer discovery](#customer-discovery)
 
 ---
 
@@ -22,7 +22,7 @@ hh, a small café, asks its agent for "100 compostable cups, delivered this week
 2. **The privacy is checked, not claimed.** The server sends a fresh nonce, checks NVIDIA's signed GPU verdict, checks that the TDX quote binds the model's signing key to that nonce, and checks every reply's signature. All three pass, so the deal shows **Verified private**.
 3. **The money is locked.** The terms (100 cups, 0.35 NEAR, 5 days) are stored encrypted. Only their SHA-256 fingerprint goes on chain. hh's agent calls `open_deal` on hh's own policy contract, which checks the limits and moves 0.35 NEAR into escrow.
 4. **The seller agrees to the same terms.** cups's agent calls `accept_deal` with the same fingerprint. A different fingerprint is refused.
-5. **Delivery, then payment.** cups marks it delivered. hh's owner presses "It arrived: pay cups". The escrow pays 0.35 NEAR to cups and tells the registry. Both businesses' scores go up.
+5. **Delivery, then payment.** cups marks it delivered. hh's owner presses "It arrived: pay cups". The escrow pays 0.35 NEAR to cups and tells the registry. Both businesses' scores go up, and so do their soulbound badge NFTs: cups's is now Silver (score 36).
 
 If the price had been over hh's per-deal limit, step 3 would have parked the deal until the owner pressed **Approve**. If cups had never delivered, anyone could have refunded hh after the deadline.
 
@@ -58,6 +58,37 @@ sequenceDiagram
 - **Reputation that only real deals can write.** Scores come from the escrow contract when a deal settles. A business cannot edit its own record.
 - **A track record you can't buy.** Each business's score is also a soulbound NFT (NEP-171): the registry builds the badge from the live reputation on every read, and every transfer fails with "Badges can't be moved". Any NEAR app or explorer can check it.
 
+## Customer discovery
+
+We checked the problem before and while building. Raw notes: [`reddit-search.md`](reddit-search.md) and [`docs/product-questions.md`](docs/product-questions.md) §3.
+
+**1. Reddit and forum search, 5 themes** (mostly Reddit mirrors, plus Nigerian sources for cross-border payments):
+
+| Theme | What people said |
+|---|---|
+| Deposits to suppliers you can't check | A Kuwait food importer wired a deposit to a Vietnamese supplier and can't get the goods or the money back. An Alibaba buyer asked how to check a supplier before paying 30% up front. |
+| Late B2B payment | An agency owner waited three months for a $3,400 invoice that was "being processed". "Net 30" takes about 40 days. |
+| Procurement friction | Vendor onboarding takes about 3 weeks even with complete documents (r/procurement, quoted secondhand). |
+| AI agents with money | "Giving an LLM unlimited bank access is terrifying." A research agent in a retry loop can burn $200 in minutes, and caps don't stop it "buying the wrong thing 100 times". The flow builders asked for: request → policy check → human approval if needed → limited credential → purchase. |
+| Nigeria cross-border | Bank FX spreads are a hidden cost for importers, and suppliers' banks add checks to payments from Nigeria. |
+
+**2. Cold outreach.** We built a 71-lead list (agent teams, B2B businesses, procurement experts) and contacted 48 of them on 4–5 November, with follow-ups on 11 and 13 November:
+
+| Segment | Contacted | Examples |
+|---|---|---|
+| AI agent and agent-payment teams | 30 | LangChain, CrewAI, Fetch.ai, Olas, Skyfire, Payman, Crossmint, Nevermined, Turnkey, Lit Protocol |
+| B2B businesses | 14 | TradeDepot and Vendease (B2B trade in Africa), 12 Web3 security and dev firms that buy and sell services |
+| Procurement and negotiation experts | 4 | Pactum, Zip, Keelvar, Fairmarkit |
+
+46 went by email and 3 by X DM (one lead got both). As of 13 November no one has replied, so nothing here rests on interviews yet.
+
+**3. What it changed in the build**
+
+- **The pain is payment trust, not haggling.** Every B2B complaint was about deposits and late payment. So escrow came first: money locked before work starts, paid on delivery, refunded after the deadline, with milestones.
+- **Agent builders described our policy contract.** Their request → policy → approval → limited-credential flow is exactly `open_deal` → caps → **Waiting for your OK** → a function-call key. The $200 retry loop is why **Freeze** deletes the key on chain at once, and the "wrong thing 100 times" point is why there are weekly caps as well as per-deal ones.
+- **Privacy never came up**, so we kept it, but as the default rather than the headline: terms are encrypted and negotiation runs in a TEE without the user doing anything.
+- **Three-week vendor onboarding** is why know-your-business (KYB) checks are the next item on the [roadmap](#roadmap).
+
 ## Architecture
 
 Three Rust contracts on testnet, a Next.js 16 app, and a small server that hosts the agents.
@@ -66,7 +97,7 @@ Three Rust contracts on testnet, a Next.js 16 app, and a small server that hosts
 
 `bizzy-fy.testnet`. `create_company` creates `<name>.bizzy-fy.testnet` in one batch: create account, fund it, deploy the policy from a NEAR **global contract** by hash, and initialise it with the caller as guardian. The new account never gets a full-access key. It also holds the directory, World ID attestations (at most 3 companies per human), and reputation, which only the escrow may write ([`record_outcome`, L221](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/registry/src/lib.rs#L221-L250)).
 
-The registry is also the NFT contract for the **score badges** ("Bizzy-Fy Track Record", symbol BIZZY). There is one token per company, its id is the company account, and the company owns it. Nothing extra is stored: `nft_token`, `nft_tokens` and `nft_tokens_for_owner` build each badge from the current reputation, with the score in the title. The picture is one of four SVGs pinned on IPFS ([`contracts/assets/badges/`](contracts/assets/badges/README.md)): New, Bronze (score 1+), Silver (30+) or Gold (100+), chosen from the live score, so it changes as the business earns trust. `media` is the CID, `media_hash` its SHA-256, and the collection's `base_uri` is Pinata's gateway. `nft_transfer` and `nft_transfer_call` always fail. New companies log a standard `nft_mint` event, and the owner logged one for the earlier companies with `emit_badges`. Check it: `near contract call-function as-read-only bizzy-fy.testnet nft_token json-args '{"token_id":"cups.bizzy-fy.testnet"}' network-config testnet now`.
+The registry is also the NFT contract for the **score badges** ("Bizzy-Fy Track Record", symbol BIZZY). There is one token per company, its id is the company account, and the company owns it. Nothing extra is stored: `nft_token`, `nft_tokens` and `nft_tokens_for_owner` build each badge from the current reputation ([`badge`, L469](https://github.com/Kelechikizito/bizzy-fy/blob/69d4897c7f491f9be306902ecbaaad07c37b7e95/contracts/registry/src/lib.rs#L469-L496)), with the score in the title. The picture is one of four SVGs pinned on IPFS ([`contracts/assets/badges/`](contracts/assets/badges/README.md)): New, Bronze (score 1+), Silver (30+) or Gold (100+), chosen from the live score, so it changes as the business earns trust. `media` is the CID, `media_hash` its SHA-256, and the collection's `base_uri` is Pinata's gateway. `nft_transfer` and `nft_transfer_call` always fail ([L416-L438](https://github.com/Kelechikizito/bizzy-fy/blob/69d4897c7f491f9be306902ecbaaad07c37b7e95/contracts/registry/src/lib.rs#L416-L438)). New companies log a standard `nft_mint` event, and the owner logged one for the earlier companies with `emit_badges`. Check it: `near contract call-function as-read-only bizzy-fy.testnet nft_token json-args '{"token_id":"cups.bizzy-fy.testnet"}' network-config testnet now`.
 
 ### Policy ([contracts/policy/src/lib.rs](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/policy/src/lib.rs#L131-L192))
 
@@ -91,7 +122,7 @@ Our keeper calls these with a key limited to exactly those methods. Every payout
 
 - **Sign-in:** **Continue with Google** through [NEAR Auth](https://auth.near.org), NEAR's own social login: the account is a key NEAR's MPC network holds for your Google login, so there's no seed phrase. The server checks the login token and derives the account itself ([`near-auth.ts`](frontend/lib/server/near-auth.ts)). Any NEAR wallet also works through NEAR Connect. A sponsor sends new testnet accounts 1 test NEAR.
 - **Dashboard:** a sidebar with tabs for buying, deals, approvals, money and rules, partners, a Sputnik DAO team treasury and your profile; the freeze button is always on screen.
-- **Pages:** deal pages with a timeline, disputes and split offers; invite links and QR codes for approved partners; direct deals for terms agreed offline; public profiles at `/b/<name>` with share cards for X; a leaderboard at `/top`.
+- **Pages:** deal pages with a timeline, disputes and split offers; invite links and QR codes for approved partners; direct deals for terms agreed offline; public profiles at `/b/<name>` with share cards for X and a link to the business's badge NFT; a leaderboard at `/top` that shows each badge image, read from the registry with `nft_tokens`.
 - **Bring your own agent:** an MCP endpoint (`/api/mcp`) lets Claude, Cursor or any MCP client act as a business's agent, with exactly the agent's powers.
 
 ## Deployments
@@ -103,6 +134,7 @@ NEAR testnet.
 | Registry (company factory, directory, reputation) | [`bizzy-fy.testnet`](https://testnet.nearblocks.io/address/bizzy-fy.testnet) |
 | Escrow | [`escrow.bizzy-fy.testnet`](https://testnet.nearblocks.io/address/escrow.bizzy-fy.testnet) |
 | Policy code (global contract, by hash) | `Ah9j86UuAV6fqyP1yzPVKSw8SWDGgaDpkTwiuxbvfvx6` |
+| Score badge NFTs (NEP-171, on the registry) | [`bizzy-fy.testnet` collection](https://testnet.nearblocks.io/nft-token/bizzy-fy.testnet/cups.bizzy-fy.testnet), images pinned on IPFS: [New](https://gateway.pinata.cloud/ipfs/bafkreiap2kmu3zxsrk4t25jatdvfrcenbw7ntj5oqrx632nutryklwhnqy), [Bronze](https://gateway.pinata.cloud/ipfs/bafkreiglwopxqnqypzikkc5rmw5uxxe7abja7crn5onvs3tzkytwfrla64), [Silver](https://gateway.pinata.cloud/ipfs/bafkreiaidntxqzmph5fvqhbiwvlb3e62tzeenvyvxzk5xdfourtxducbum), [Gold](https://gateway.pinata.cloud/ipfs/bafkreicl6me6dpuiwgkucloac2bez6jxnzqihf74p43eyqynv3lhsuhzte) |
 | Attester and keeper (World ID facts, settling due deals) | [`bizzy-fy-attester.testnet`](https://testnet.nearblocks.io/address/bizzy-fy-attester.testnet) |
 | Demo businesses | [`cafe.bizzy-fy.testnet`](https://testnet.nearblocks.io/address/cafe.bizzy-fy.testnet), [`cups.bizzy-fy.testnet`](https://testnet.nearblocks.io/address/cups.bizzy-fy.testnet), [`hh.bizzy-fy.testnet`](https://testnet.nearblocks.io/address/hh.bizzy-fy.testnet) |
 
@@ -129,6 +161,7 @@ The other paths:
 | The keeper refunds a deal past its deadline | [`DRNLQG…`](https://testnet.nearblocks.io/txns/DRNLQGKnKFzoCau2RM3GeLvt1yaVkJxBuChsGiv7RZYd) |
 | A company is marked verified human after World ID | [`674UXL…`](https://testnet.nearblocks.io/txns/674UXLrSBFiLwEKD6kBjdn4Phhmamn247yjPuKmaQDVj) |
 | A test call to the MCP endpoint with cafe's connection key buys 50 cups: verified private, parked for approval | [`4RChg8…`](https://testnet.nearblocks.io/txns/4RChg87kNaJrKRGdBC5hsGWmGLxrSTXJj4tL6Qrocf7K) |
+| Trying to transfer cups's score badge fails: "Badges can't be moved" | [`7AiGJ3…`](https://testnet.nearblocks.io/txns/7AiGJ3mzYEtPpe3RC7D4tFVfGkt1xQKphj7G948n4fXa) |
 
 ## Try it
 
@@ -142,7 +175,8 @@ Do these locally (see Quick start) or on the hosted site:
 6. **Press Freeze agent.** Asking again now fails, because the agent's key is gone from the chain.
 7. **Approved businesses only:** Partners → **Connect with cups**, then Money and rules → **Only businesses I approve**. Your agent still buys from cups and refuses anyone else.
 8. **Your own AI:** "Use your own AI as your agent" → make a key → run the Claude Code line. Then ask Claude to buy cups on Bizzy-Fy.
-9. Open **Top businesses** and your public profile at `/b/<your name>`.
+9. Open **Top businesses** (`/top`): each business has its badge beside its name, Silver for cups, Bronze for hh. Open your public profile at `/b/<your name>` and press **See the badge** to view your NFT on the explorer.
+10. **Check the badge yourself:** `near contract call-function as-read-only bizzy-fy.testnet nft_token json-args '{"token_id":"cups.bizzy-fy.testnet"}' network-config testnet now` shows "cups: score 36" and the Silver image's CID. Any `nft_transfer` call fails.
 
 ## Quick start
 
@@ -200,7 +234,7 @@ The three contracts were reviewed against the `near-contract-audit` checklist ([
 | **Agent Economy**: "agents that earn, spend, negotiate" | Two agents negotiate and settle a purchase: [`negotiate()`](frontend/lib/server/negotiate.ts), [escrow](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/escrow/src/lib.rs#L92-L292), MCP for outside agents ([`app/api/mcp`](frontend/app/api/mcp/route.ts)) |
 | **Privacy & Private AI**: "private AI, TEE, NEAR AI Cloud" | Negotiation in NEAR AI Cloud's TEE with in-app attestation checks ([`ai.ts` L43-L96](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/frontend/lib/server/ai.ts#L43-L96)); encrypted terms with on-chain fingerprints; salted partner list |
 | **AI Security & Defense**: "spending limits, policy engines, sandboxed wallets, reputation… function call keys, TEE attestation" | [Policy contract](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/policy/src/lib.rs#L131-L283): caps, approvals, freeze, function-call key with gas allowance, no full-access key; reputation only the escrow writes |
-| **NFTs That Do Something**: "carry credentials… dynamic NFTs, NEP-171" | Each business's score is a soulbound NEP-171 badge, built live from on-chain reputation ([registry](contracts/registry/src/lib.rs), search `nft_token`); transfers always fail |
+| **NFTs That Do Something**: "carry credentials… dynamic NFTs, NEP-171" | Each business's score is a soulbound NEP-171 badge that carries its credential (score, deals, disputes), built live from on-chain reputation ([`badge`](https://github.com/Kelechikizito/bizzy-fy/blob/69d4897c7f491f9be306902ecbaaad07c37b7e95/contracts/registry/src/lib.rs#L469-L496)). Its IPFS image changes level as the score grows. Transfers always fail ([L416-L438](https://github.com/Kelechikizito/bizzy-fy/blob/69d4897c7f491f9be306902ecbaaad07c37b7e95/contracts/registry/src/lib.rs#L416-L438)) |
 | **Autonomous Business**: "procurement… humans only set the constraints" | The owner sets limits and approves exceptions; the agent buys, the escrow settles, the keeper ends timeouts |
 
 ## Roadmap
@@ -232,6 +266,31 @@ The result: verify once and every partner trusts it, so vendor onboarding drops 
 - **Credit from trade history.** Every settled deal is an on-chain payment record that can't be faked. Lenders could extend working capital to businesses with a strong record, which matters most where banks don't serve small traders.
 - **Agents on NEAR's Agent Market,** so a business's agent can also be hired by others.
 
+## What was built during the hackathon
+
+Everything. Bizzy-Fy has no earlier version and no baseline: it was started for NEAR HACKATHON 2026, and the first commit is [`758ca3c`](https://github.com/Kelechikizito/bizzy-fy/commit/758ca3c) on 2026-11-05.
+
+- Everything since: [all commits](https://github.com/Kelechikizito/bizzy-fy/commits/main) (100+)
+- Design notes and every checkpoint with its tests and transactions: [`docs/`](docs)
+
+## Tech stack
+
+| Layer | What |
+|---|---|
+| Contracts | Rust, `near-sdk` 5.29, `near-contract-standards` 5.29 (NEP-171 types and events), Global Contracts, `cargo-near` |
+| Tests | `cargo test`, `proptest`, `near-sandbox` with `near-api`; Node's test runner for the server |
+| Private AI | NEAR AI Cloud (private model in a TEE), NVIDIA NRAS (GPU attestation), `viem` (reply signature recovery) |
+| Identity and sign-in | NEAR Auth (`@fast-auth-near/*`), NEAR Connect (`@hot-labs/near-connect`), World ID (`@worldcoin/idkit` 4.6.0), `jose` |
+| Frontend and server | Next.js 16, React 19, Tailwind 4, Motion, `near-api-js` 5, `near-kit`, `@libsql/client`, `qrcode` |
+| Agents from outside | MCP (`@modelcontextprotocol/server`, `mcp-handler`) |
+| Data and hosting | NEAR RPC (FastNEAR), Pinata IPFS for the badge images, Vercel |
+
+Libraries are used as published. Code was written by Kelechikizito with Claude Code (Anthropic) as a coding assistant.
+
 ## Team · License
 
-Built by [@Kelechikizito](https://github.com/Kelechikizito) during the NEAR hackathon, with Claude Code. MIT licensed (see [LICENSE](LICENSE)). The design notes and every build step are in [`docs/`](docs).
+Built by [Kelechikizito](https://github.com/Kelechikizito).
+
+Disclosure (rule Q-015): Kelechikizito also submitted a separate, independent project to NEAR HACKATHON, [Herit](https://github.com/FemiOje/herit-near), built with [jinius](https://github.com/FemiOje). The two share no code.
+
+[MIT](LICENSE)
