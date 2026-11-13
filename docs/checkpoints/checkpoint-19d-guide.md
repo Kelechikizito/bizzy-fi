@@ -119,6 +119,43 @@ Keep 1–26. Add:
 | 36 | badge follows the score | record a lost dispute; the title now says `score 0` |
 | 37 | owner calls `emit_badges` for 2 companies | one log line naming both |
 
+## Step 5: level pictures on IPFS (added after the first deploy)
+
+NearBlocks didn't show the share-card picture, so each badge now shows one of 4 fixed pictures, pinned on IPFS through Pinata. The contract picks the picture from the live score, so the badge still changes as the score grows.
+
+| Level | Score |
+|---|---|
+| New | 0 |
+| Bronze | 1–29 |
+| Silver | 30–99 |
+| Gold | 100+ |
+
+This is the same approach as herit-near's credential images:
+- **The files.** The 4 SVGs are in `contracts/assets/badges/`, about 1 KB each.
+- **Their CIDs.** A raw CIDv1 is just the file's SHA-256 with a prefix, so each CID was worked out from the file before any upload. The table is in that folder's README.
+- **No `media_hash` gap.** The pictures never change, so each badge can carry a `media_hash`, as the standard asks.
+
+**Pin (you, once).** Upload the 4 SVGs to your Pinata account with CID version 1. Each CID Pinata shows must match the README table.
+
+**Write.**
+- Add the gateway and the table:
+  ```rust
+  /// Where wallets fetch `media` from (NEP-177: `base_uri` + "/" + `media`).
+  const IPFS_GATEWAY: &str = "https://gateway.pinata.cloud/ipfs";
+  /// Badge images on IPFS: (lowest score, CID, SHA-256 of the file), lowest level first.
+  const LEVELS: [(u32, &str, [u8; 32]); 4] = [
+      (0, "bafkreiap2kmu3zxsrk4t25jatdvfrcenbw7ntj5oqrx632nutryklwhnqy", [15, 210, 153, 77, 230, 242, 138, 185, 61, 117, 32, 152, 234, 88, 136, 141, 13, 190, 217, 167, 174, 132, 111, 237, 233, 180, 156, 112, 165, 216, 237, 134]),
+      (1, "bafkreiglwopxqnqypzikkc5rmw5uxxe7abja7crn5onvs3tzkytwfrla64", [203, 179, 159, 120, 54, 24, 126, 80, 165, 11, 177, 101, 187, 75, 220, 159, 0, 82, 15, 138, 45, 235, 155, 89, 110, 121, 86, 39, 98, 197, 96, 247]),
+      (30, "bafkreiaidntxqzmph5fvqhbiwvlb3e62tzeenvyvxzk5xdfourtxducbum", [8, 27, 103, 120, 101, 143, 63, 75, 88, 28, 40, 181, 86, 29, 147, 218, 158, 72, 70, 215, 21, 190, 85, 219, 140, 174, 164, 103, 113, 208, 65, 163]),
+      (100, "bafkreicl6me6dpuiwgkucloac2bez6jxnzqihf74p43eyqynv3lhsuhzte", [75, 243, 9, 225, 190, 136, 177, 149, 65, 45, 192, 22, 130, 76, 249, 55, 110, 96, 131, 151, 252, 127, 54, 76, 67, 13, 174, 214, 121, 80, 249, 153]),
+  ];
+  ```
+- In `nft_metadata`, set `base_uri: Some(IPFS_GATEWAY.into())`.
+- In `badge`, pick the highest level the score reaches: `LEVELS.iter().rev().find(|(min, _, _)| score >= *min)`. New starts at 0, so one is always found.
+- Set `media: Some(cid.to_string())` (just the CID; wallets add `base_uri`) and `media_hash: Some(Base64VecU8(hash.to_vec()))`.
+- `SITE` is no longer used, so remove it.
+- Update test 27: at score 13, `media` is Bronze's CID and `media_hash` is `Some`. Add test 38: score 0 gives New's CID and score 36 gives Silver's. Add test 39: `nft_metadata().base_uri` is the gateway. Add test 40: each hash in `LEVELS` is the SHA-256 of its file (`include_bytes!`).
+
 ## Check
 
 From `contracts/`:

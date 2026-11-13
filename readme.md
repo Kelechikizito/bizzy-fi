@@ -66,7 +66,7 @@ Three Rust contracts on testnet, a Next.js 16 app, and a small server that hosts
 
 `bizzy-fy.testnet`. `create_company` creates `<name>.bizzy-fy.testnet` in one batch: create account, fund it, deploy the policy from a NEAR **global contract** by hash, and initialise it with the caller as guardian. The new account never gets a full-access key. It also holds the directory, World ID attestations (at most 3 companies per human), and reputation, which only the escrow may write ([`record_outcome`, L221](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/registry/src/lib.rs#L221-L250)).
 
-The registry is also the NFT contract for the **score badges** ("Bizzy-Fy Track Record", symbol BIZZY). There is one token per company, its id is the company account, and the company owns it. Nothing extra is stored: `nft_token`, `nft_tokens` and `nft_tokens_for_owner` build each badge from the current reputation, with the score in the title and the profile's share card as the picture. `nft_transfer` and `nft_transfer_call` always fail. New companies log a standard `nft_mint` event, and the owner logged one for the earlier companies with `emit_badges`. Check it: `near contract call-function as-read-only bizzy-fy.testnet nft_token json-args '{"token_id":"cups.bizzy-fy.testnet"}' network-config testnet now`. The badge has no `media_hash`, because its picture changes with the score.
+The registry is also the NFT contract for the **score badges** ("Bizzy-Fy Track Record", symbol BIZZY). There is one token per company, its id is the company account, and the company owns it. Nothing extra is stored: `nft_token`, `nft_tokens` and `nft_tokens_for_owner` build each badge from the current reputation, with the score in the title. The picture is one of four SVGs pinned on IPFS ([`contracts/assets/badges/`](contracts/assets/badges/README.md)): New, Bronze (score 1+), Silver (30+) or Gold (100+), chosen from the live score, so it changes as the business earns trust. `media` is the CID, `media_hash` its SHA-256, and the collection's `base_uri` is Pinata's gateway. `nft_transfer` and `nft_transfer_call` always fail. New companies log a standard `nft_mint` event, and the owner logged one for the earlier companies with `emit_badges`. Check it: `near contract call-function as-read-only bizzy-fy.testnet nft_token json-args '{"token_id":"cups.bizzy-fy.testnet"}' network-config testnet now`.
 
 ### Policy ([contracts/policy/src/lib.rs](https://github.com/Kelechikizito/bizzy-fy/blob/d2190f0b7b97d16015287b1feadb2effe269c254/contracts/policy/src/lib.rs#L131-L192))
 
@@ -161,8 +161,8 @@ Contracts: `cd contracts && make test` (all tests and clippy), `make build`. `ma
 
 ## Testing
 
-- **137 contract tests pass** (`cargo test --workspace`), and `cargo clippy -D warnings` is clean:
-  - 129 unit tests: escrow 42, policy 49, registry 38;
+- **140 contract tests pass** (`cargo test --workspace`), and `cargo clippy -D warnings` is clean:
+  - 132 unit tests: escrow 42, policy 49, registry 41;
   - 8 sandbox tests on a real local NEAR node, including the full deal path through all three contracts.
 - **10 server tests** (`npm test`): offer parsing, the buyer's price cap, the TDX quote binding, NEP-413 login signatures, World ID nullifiers, sessions, encryption, who can read terms, settle timing, and contact-link safety.
 
