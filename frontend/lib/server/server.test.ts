@@ -90,6 +90,9 @@ test("the buyer's agent can never go over its limit", async () => {
   assert.equal(enforce("buyer", offer(0, "accept"), offer(1.5), 2).action, "accept");
   assert.equal(enforce("seller", offer(0, "accept"), undefined, 2).action, "walk_away");
   assert.equal(enforce("seller", offer(9), offer(1), 2).price_near, 9);
+  // Nobody can agree under the escrow's 0.1 NEAR minimum.
+  assert.equal(enforce("buyer", offer(0.01), undefined, 2).price_near, 0.1);
+  assert.equal(enforce("seller", offer(0.04), offer(0.03), 2).price_near, 0.1);
   assert.equal(enforce("seller", offer(0.7, "accept"), offer(0.45), 2).action, "offer");
   assert.equal(enforce("seller", offer(0.45, "accept"), offer(0.45), 2).action, "accept");
 });
