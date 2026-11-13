@@ -7,7 +7,7 @@ use near_contract_standards::non_fungible_token::events::NftMint;
 use near_contract_standards::non_fungible_token::metadata::{
     NFT_METADATA_SPEC, NFTContractMetadata, TokenMetadata,
 };
-use near_sdk::json_types::{Base58CryptoHash, U64, U128};
+use near_sdk::json_types::{Base58CryptoHash, Base64VecU8, U64, U128};
 use near_sdk::serde_json::json;
 use near_sdk::store::{IterableMap, LookupMap, LookupSet};
 use near_sdk::{
@@ -21,8 +21,43 @@ const GAS_FOR_INIT: Gas = Gas::from_tgas(30);
 const GAS_FOR_CALLBACK: Gas = Gas::from_tgas(15);
 /// Most companies one World ID human may verify (sybil resistance).
 const MAX_COMPANIES_PER_HUMAN: u32 = 3;
-/// The website, for each badge's picture.
-const SITE: &str = "https://bizzy-fy.vercel.app";
+/// Where wallets fetch `media` from (NEP-177: `base_uri` + "/" + `media`).
+const IPFS_GATEWAY: &str = "https://gateway.pinata.cloud/ipfs";
+/// Badge images on IPFS (`contracts/assets/badges/`): (lowest score, CID, SHA-256 of the file), lowest first.
+const LEVELS: [(u32, &str, [u8; 32]); 4] = [
+    (
+        0,
+        "bafkreiap2kmu3zxsrk4t25jatdvfrcenbw7ntj5oqrx632nutryklwhnqy",
+        [
+            15, 210, 153, 77, 230, 242, 138, 185, 61, 117, 32, 152, 234, 88, 136, 141, 13, 190,
+            217, 167, 174, 132, 111, 237, 233, 180, 156, 112, 165, 216, 237, 134,
+        ],
+    ),
+    (
+        1,
+        "bafkreiglwopxqnqypzikkc5rmw5uxxe7abja7crn5onvs3tzkytwfrla64",
+        [
+            203, 179, 159, 120, 54, 24, 126, 80, 165, 11, 177, 101, 187, 75, 220, 159, 0, 82, 15,
+            138, 45, 235, 155, 89, 110, 121, 86, 39, 98, 197, 96, 247,
+        ],
+    ),
+    (
+        30,
+        "bafkreiaidntxqzmph5fvqhbiwvlb3e62tzeenvyvxzk5xdfourtxducbum",
+        [
+            8, 27, 103, 120, 101, 143, 63, 75, 88, 28, 40, 181, 86, 29, 147, 218, 158, 72, 70, 215,
+            21, 190, 85, 219, 140, 174, 164, 103, 113, 208, 65, 163,
+        ],
+    ),
+    (
+        100,
+        "bafkreicl6me6dpuiwgkucloac2bez6jxnzqihf74p43eyqynv3lhsuhzte",
+        [
+            75, 243, 9, 225, 190, 136, 177, 149, 65, 45, 192, 22, 130, 76, 249, 55, 110, 96, 131,
+            151, 252, 127, 54, 76, 67, 13, 174, 214, 121, 80, 249, 153,
+        ],
+    ),
+];
 
 /// Storage prefixes, one per collection.
 #[near]
@@ -308,7 +343,7 @@ impl Contract {
             name: "Bizzy-Fy Track Record".to_string(),
             symbol: "BIZZY".to_string(),
             icon: None,
-            base_uri: None,
+            base_uri: Some(IPFS_GATEWAY.to_string()),
             reference: None,
             reference_hash: None,
         }
@@ -436,6 +471,8 @@ impl Contract {
         let r = &c.reputation;
         let name = id.as_str().split('.').next().unwrap_or_default();
         let score = self.get_score(id.clone());
+        // The highest level the score reaches; New starts at 0, so one always matches.
+        let (_, cid, hash) = LEVELS.iter().rev().find(|(min, _, _)| score >= *min)?;
         let metadata = TokenMetadata {
             title: Some(format!("{name}: score {score}")),
             description: Some(format!(
@@ -444,7 +481,8 @@ impl Contract {
                 r.counterparties,
                 r.disputes_lost
             )),
-            media: Some(format!("{SITE}/b/{name}/opengraph-image")),
+            media: Some(cid.to_string()),
+            media_hash: Some(Base64VecU8(hash.to_vec())),
             issued_at: Some((c.created_at.0 / 1_000_000).to_string()),
             extra: Some(json!({ "score": score, "reputation": r }).to_string()),
             ..Default::default()
@@ -872,7 +910,48 @@ mod tests {
         assert_eq!(token.owner_id, company_id("acme"));
         let metadata = token.metadata.unwrap();
         assert_eq!(metadata.title.unwrap(), "acme: score 13");
-        assert!(metadata.media.unwrap().ends_with("/b/acme/opengraph-image"));
+        assert_eq!(metadata.media.unwrap(), LEVELS[1].1);
+        assert_eq!(metadata.media_hash.unwrap().0, LEVELS[1].2);
+    }
+
+    /// The image CID a company's badge shows now.
+    fn badge_cid(contract: &Contract, name: &str) -> String {
+        let token = contract.nft_token(company_id(name).to_string()).unwrap();
+        token.metadata.unwrap().media.unwrap()
+    }
+
+    /// Test 38: the picture follows the score: 0 is New, 36 is Silver.
+    #[test]
+    fn badge_level_follows_score() {
+        let mut contract = ready();
+        add_company(&mut contract, "acme");
+        assert_eq!(badge_cid(&contract, "acme"), LEVELS[0].1);
+        for counterparty in ["beta", "gamma", "beta"] {
+            report(&mut contract, "acme", counterparty, Outcome::OnTime);
+        }
+        assert_eq!(contract.get_score(company_id("acme")), 36);
+        assert_eq!(badge_cid(&contract, "acme"), LEVELS[2].1);
+    }
+
+    /// Test 39: wallets get the IPFS gateway as the collection's base_uri.
+    #[test]
+    fn metadata_has_gateway() {
+        let contract = ready();
+        assert_eq!(contract.nft_metadata().base_uri.unwrap(), IPFS_GATEWAY);
+    }
+
+    /// Test 40: every hash in LEVELS is the SHA-256 of its file.
+    #[test]
+    fn images_match_their_files() {
+        let files: [&[u8]; 4] = [
+            include_bytes!("../../assets/badges/new.svg"),
+            include_bytes!("../../assets/badges/bronze.svg"),
+            include_bytes!("../../assets/badges/silver.svg"),
+            include_bytes!("../../assets/badges/gold.svg"),
+        ];
+        for (file, (_, _, hash)) in files.iter().zip(LEVELS) {
+            assert_eq!(env::sha256_array(file), hash);
+        }
     }
 
     /// Test 28: unknown or invalid ids give no badge, without panicking.
