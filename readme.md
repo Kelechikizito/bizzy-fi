@@ -20,9 +20,9 @@ Built on NEAR (Rust contracts, function-call keys, global contracts, NEP-171), N
 
 ## The problem
 
-A café owner in Lagos needs 500 compostable cups every week. Ordering from a new supplier means paying a deposit up front and hoping the cups arrive, or the supplier delivering first and hoping to get paid. Haggling takes phone calls. Handing that to an AI agent is worse: today an agent with a wallet can spend everything in it, and its negotiation runs on someone else's servers where prices and margins leak.
+A café owner in Lagos needs 500 compostable cups every week. Ordering from a new supplier means paying a deposit up front and hoping the cups arrive, or the supplier delivering first and hoping to get paid. Haggling takes phone calls. Handing that to an AI agent is worse because an agent with a wallet can spend everything in it, and its negotiation runs on someone else's servers where prices and margins leak.
 
-Bizzy-Fy gives the café an agent that bargains in private, cannot spend past the owner's limits, and never hands money to a seller until the goods arrive.
+- Bizzy-Fy gives the café an agent that bargains in private, cannot spend past the owner's limits, and never hands money to a seller until the goods arrive. \*
 
 ## How it works
 
