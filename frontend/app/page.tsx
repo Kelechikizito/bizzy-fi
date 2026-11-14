@@ -397,23 +397,35 @@ function OfferChart() {
 /** Customer discovery, from the README's "Customer discovery" section. */
 const RESEARCH = [
   { value: 5, label: "pain themes researched across Reddit and forums" },
-  { value: 71, label: "leads listed: agent teams, B2B businesses, procurement experts" },
+  {
+    value: 71,
+    label: "leads listed: agent teams, B2B businesses, procurement experts",
+  },
   { value: 48, label: "contacted by cold email and X DM" },
-  { value: 3, label: "segments: agent builders, B2B traders, negotiation experts" },
+  {
+    value: 3,
+    label: "segments: agent builders, B2B traders, negotiation experts",
+  },
 ];
 
 const LEARNED = [
   {
-    heard: "An importer wired a deposit to a supplier abroad and got neither the goods nor the money back. Agencies wait months for invoices.",
-    built: "Escrow first: money locked before work starts, paid on delivery, refunded after the deadline.",
+    heard:
+      "An importer wired a deposit to a supplier abroad and got neither the goods nor the money back. Agencies wait months for invoices.",
+    built:
+      "Escrow first: money locked before work starts, paid on delivery, refunded after the deadline.",
   },
   {
-    heard: "“Giving an LLM unlimited bank access is terrifying.” A retry loop can burn $200 in minutes.",
-    built: "A policy contract with caps, owner approval and a Freeze button that deletes the agent's key at once.",
+    heard:
+      "“Giving an LLM unlimited bank access is terrifying.” A retry loop can burn $200 in minutes.",
+    built:
+      "A policy contract with caps, owner approval and a Freeze button that deletes the agent's key at once.",
   },
   {
-    heard: "Vendor onboarding takes about three weeks, even with complete documents.",
-    built: "Verify once with World ID, reused by every partner. Business checks (KYB) are next on the roadmap.",
+    heard:
+      "Vendor onboarding takes about three weeks, even with complete documents.",
+    built:
+      "Verify once with World ID, reused by every partner. Business checks (KYB) are next on the roadmap.",
   },
 ];
 
@@ -511,7 +523,7 @@ export default function Home() {
       <section id="research" className="scroll-mt-8 border-t border-rule py-20">
         <div className={WRAP}>
           <Reveal>
-            <h2 className={H2}>We did the homework before the code</h2>
+            <h2 className={H2}>We did our homework before coding</h2>
             <p className="mt-3 max-w-prose text-muted">
               Before and while building, we searched what business owners and
               agent builders actually complain about, then cold-emailed the
@@ -530,10 +542,17 @@ export default function Home() {
           </dl>
           <ul className="mt-10 grid gap-4 md:grid-cols-3">
             {LEARNED.map((l) => (
-              <li key={l.heard} className="rounded-sm border border-rule bg-card p-4">
-                <p className="text-xs font-medium uppercase text-badge">What we heard</p>
+              <li
+                key={l.heard}
+                className="rounded-sm border border-rule bg-card p-4"
+              >
+                <p className="text-xs font-medium uppercase text-badge">
+                  Our research
+                </p>
                 <p className="mt-2">{l.heard}</p>
-                <p className="mt-4 text-xs font-medium uppercase text-badge">What we built</p>
+                <p className="mt-4 text-xs font-medium uppercase text-badge">
+                  What we built
+                </p>
                 <p className="mt-2 text-sm text-muted">{l.built}</p>
               </li>
             ))}
