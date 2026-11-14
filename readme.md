@@ -2,6 +2,8 @@
 
 > Your business's AI agent haggles with suppliers' agents inside sealed hardware, then locks the payment on NEAR until delivery, under rules the AI cannot override.
 
+Disclosure (rule Q-015): Kelechikizito also submitted a separate, independent project to NEAR HACKATHON, [Herit](https://github.com/FemiOje/herit-near), built with [jinius](https://github.com/FemiOje). The two share no code.
+
 **NEAR HACKATHON 2026** ·
 
 Tracks:
@@ -61,7 +63,7 @@ sequenceDiagram
 
 ## What makes this different
 
-- **The AI holds a key, not the money.** Each business is its own NEAR account with **no full-access key**. Its funds sit in a policy contract. The agent gets a function-call key that can only call `open_deal` and `deal_action`, with a 1 NEAR gas allowance. Spending caps, weekly limits, approvals and freeze are enforced on chain. A prompt injection can make the agent say anything; it cannot make the contract pay more.
+- **The AI holds a key.** Each business is its own NEAR account with **no full-access key**. Its funds sit in a policy contract. The agent gets a function-call key that can only call `open_deal` and `deal_action`, with a 1 NEAR gas allowance. Spending caps, weekly limits, approvals and freeze are enforced on chain.
 - **Private negotiation you can verify.** Other agent marketplaces run the negotiation on their own servers. Here it runs in NEAR AI Cloud's TEE, and every negotiation stores its own proof: NVIDIA's verdict for our nonce, the key binding, and a signature check on each reply.
 - **Private terms, public guarantees.** Prices and items never touch the chain. The escrow holds only the amount and a salted fingerprint, so either side can later prove what was agreed without publishing it.
 - **Private trade graph.** Approved trading partners are stored as `sha256(secret salt + account)`, a different salt per direction, so nobody can read on chain who trades with whom.
@@ -303,7 +305,5 @@ Libraries are used as published. Code was written by Kelechikizito with Claude C
 ## Team · License
 
 Built by [Kelechikizito](https://github.com/Kelechikizito).
-
-Disclosure (rule Q-015): Kelechikizito also submitted a separate, independent project to NEAR HACKATHON, [Herit](https://github.com/FemiOje/herit-near), built with [jinius](https://github.com/FemiOje). The two share no code.
 
 [MIT](LICENSE)
