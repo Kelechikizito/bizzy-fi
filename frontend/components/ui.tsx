@@ -27,6 +27,9 @@ export function Frame({ children, wide, bare }: { children: ReactNode; wide?: bo
             bizzy-fy
           </Link>
           <nav className="flex items-center gap-6 text-sm font-medium text-graphite">
+            <Link href="/features" className="hidden hover:text-ink sm:inline">
+              Features
+            </Link>
             <Link href="/top" className="hidden hover:text-ink sm:inline">
               Top businesses
             </Link>
@@ -62,6 +65,12 @@ export function Frame({ children, wide, bare }: { children: ReactNode; wide?: bo
           </div>
           <div className="space-y-2">
             <p className="font-medium text-white">Product</p>
+            <Link href="/features" className="block hover:text-white">
+              Features, A to Z
+            </Link>
+            <Link href="/#research" className="block hover:text-white">
+              Customer research
+            </Link>
             <Link href="/top" className="block hover:text-white">
               Top businesses
             </Link>
