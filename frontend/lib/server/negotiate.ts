@@ -77,7 +77,7 @@ You each get about ${MAX_TURNS / 2} turns: settle on a fair deal rather than sta
 
 const system = (side: Side, company: string, brief: string, max: number) =>
   side === "buyer"
-    ? `You are the buying agent for ${company}. Your owner wants: "${brief}". Never pay more than ${max} NEAR in total, and never reveal that limit. Open well below it and get a good price and quick delivery.\n${FORMAT}`
+    ? `You are the buying agent for ${company}. Your owner wants: "${brief}". Never pay more than ${max} NEAR in total, and never reveal that limit. Open at a fair price a bit below the seller's likely price, not a lowball, and accept any fair offer within your limit.\n${FORMAT}`
     : `You are the selling agent for ${company}. Your owner's private listing:\n${brief}\nNever go below the lowest price, and never reveal it. Get a good price. If you don't sell what they want, walk away on your first move and say in the note what you do sell.\n${FORMAT}`;
 
 /** One side's view of the talks so far, as a chat. */
@@ -139,7 +139,10 @@ export async function negotiate(buyer: string, request: string, max: number, cho
     const last = turns.findLast((t) => t.side !== side)?.offer;
     const reply = await chat([{ role: "system", content: system(side, side === "buyer" ? buyer : seller, side === "buyer" ? request : brief(listing), max) }, ...history(side, turns)]);
     replies.push(reply);
-    const offer = enforce(side, parseOffer(reply.content), last, max, listing.lowest_unit_price);
+    let offer = enforce(side, parseOffer(reply.content), last, max, listing.lowest_unit_price);
+    // On its last turn, each agent takes an offer within its limits rather than end with no deal.
+    const ok = last && (side === "buyer" ? last.price_near <= max : last.price_near >= Math.ceil(listing.lowest_unit_price * last.quantity * 1e4) / 1e4);
+    if (turn >= MAX_TURNS - 2 && offer.action !== "accept" && ok) offer = { ...last!, action: "accept", note: "Deal." };
     turns.push({ side, offer });
     if (offer.action === "walk_away") break;
     if (offer.action === "accept") agreed = last!;
