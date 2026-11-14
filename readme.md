@@ -20,6 +20,27 @@ Built on NEAR (Rust contracts, function-call keys, global contracts, NEP-171), N
 
 ---
 
+## Contents
+
+1. [The problem](#the-problem)
+2. [How it works](#how-it-works)
+3. [What makes this different](#what-makes-this-different)
+4. [Features (A to Z)](#features-a-to-z)
+5. [Customer discovery](#customer-discovery)
+6. [Architecture](#architecture)
+7. [Deployments](#deployments)
+8. [Proof it ran](#proof-it-ran)
+9. [Try it](#try-it)
+10. [Quick start](#quick-start)
+11. [Testing](#testing)
+12. [Security review](#security-review)
+13. [Known issues](#known-issues)
+14. [Track alignment](#track-alignment)
+15. [Roadmap](#roadmap)
+16. [What was built during the hackathon](#what-was-built-during-the-hackathon)
+17. [Tech stack](#tech-stack)
+18. [Team · License](#team--license)
+
 ## The problem
 
 A café owner in Lagos needs 500 compostable cups every week. Ordering from a new supplier means paying a deposit up front and hoping the cups arrive, or the supplier delivering first and hoping to get paid. Haggling takes phone calls. Handing that to an AI agent is worse because an agent with a wallet can spend everything in it, and its negotiation runs on someone else's servers where prices and margins leak.
